@@ -128,6 +128,9 @@ impl Session {
     where
         I: IntoIterator<Item = InputFile>,
     {
+        // TODO: Remove this. I'm only hardcoding this for debugging purposes.
+        let mut options = options;
+        options.print_ir_after_all = true;
         let inputs = inputs.into_iter().collect::<Vec<_>>();
 
         Self::make(inputs, output_dir, output_file, target_dir, options, emitter, source_manager)

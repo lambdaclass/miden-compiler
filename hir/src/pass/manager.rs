@@ -9,8 +9,8 @@ use super::{
     PassInstrumentor, PipelineParentInfo, Statistic,
 };
 use crate::{
-    traits::IsolatedFromAbove, Context, EntityMut, OpPrintingFlags, OpRegistration, Operation,
-    OperationName, OperationRef, Report,
+    pass::Print, traits::IsolatedFromAbove, Context, EntityMut, OpPrintingFlags, OpRegistration,
+    Operation, OperationName, OperationRef, Report,
 };
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -29,6 +29,7 @@ pub enum PassDisplayMode {
 
 // TODO(pauls)
 #[allow(unused)]
+#[derive(Default, Debug)]
 pub struct IRPrintingConfig {
     print_module_scope: bool,
     print_after_only_on_change: bool,
@@ -40,7 +41,7 @@ pub struct IRPrintingConfig {
 pub struct PassManager {
     context: Rc<Context>,
     /// The underlying pass manager
-    pm: OpPassManager,
+    pub pm: OpPassManager,
     /// A manager for pass instrumentation
     instrumentor: Rc<PassInstrumentor>,
     /// An optional crash reproducer generator, if this pass manager is setup to
@@ -169,8 +170,11 @@ impl PassManager {
         self
     }
 
-    pub fn enable_ir_printing(&mut self, _config: IRPrintingConfig) {
-        todo!()
+    // pub fn enable_ir_printing(&mut self, _config: IRPrintingConfig) {
+    pub fn enable_ir_printing(&mut self) -> &mut Self {
+        self.pm.printer = Some(IRPrintingConfig::default());
+        // self.add_pass(Box::new(Print::any()));
+        self
     }
 
     pub fn enable_timing(&mut self, yes: bool) -> &mut Self {
@@ -232,6 +236,9 @@ pub struct OpPassManager {
     passes: SmallVec<[Box<dyn OperationPass>; 8]>,
     /// Control the implicit nesting of passes that mismatch the name set for this manager
     nesting: Nesting,
+
+    /// Indicates wheter or not to print IR after passes
+    pub printer: Option<IRPrintingConfig>,
 }
 
 impl OpPassManager {
@@ -246,6 +253,7 @@ impl OpPassManager {
             name: None,
             passes: Default::default(),
             nesting,
+            printer: None,
         }
     }
 
@@ -275,6 +283,7 @@ impl OpPassManager {
             name: Some(name),
             passes: Default::default(),
             nesting,
+            printer: None,
         }
     }
 
@@ -298,6 +307,7 @@ impl OpPassManager {
             name: Some(name),
             passes: Default::default(),
             nesting,
+            printer: None,
         }
     }
 
@@ -307,6 +317,7 @@ impl OpPassManager {
             name: Some(name),
             passes: Default::default(),
             nesting,
+            printer: None,
         }
     }
 
@@ -519,6 +530,7 @@ impl OpPassManager {
 
     pub fn nest_pass_manager(&mut self, nested: Self) -> NestedOpPassManager<'_> {
         let adaptor = Box::new(OpToOpPassAdaptor::new(nested));
+        self.add_pass(Box::new(Print::any()));
         NestedOpPassManager {
             parent: self,
             nested: Some(adaptor),

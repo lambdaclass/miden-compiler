@@ -97,7 +97,7 @@ impl Pass for Print {
         match self.filter {
             OpFilter::All => {
                 let target = self.target.as_deref().unwrap_or("printer");
-                log::trace!(target: target, "{op}");
+                log::error!(target: target, "{op}");
             }
             OpFilter::Type {
                 dialect,
@@ -106,21 +106,21 @@ impl Pass for Print {
                 let name = op.name();
                 if name.dialect() == dialect && name.name() == op_name {
                     let target = self.target.as_deref().unwrap_or("printer");
-                    log::trace!(target: target, "{op}");
+                    log::error!(target: target, "{op}");
                 }
             }
             OpFilter::Symbol(None) => {
                 if let Some(sym) = op.as_symbol() {
                     let name = sym.name().as_str();
                     let target = self.target.as_deref().unwrap_or(name);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                    log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
             OpFilter::Symbol(Some(filter)) => {
                 if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
                 {
                     let target = self.target.as_deref().unwrap_or(filter);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                    log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
         }
