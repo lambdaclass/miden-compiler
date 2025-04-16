@@ -16,6 +16,7 @@ pub use self::{
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
 };
+use crate::OperationRef;
 
 /// A `Pass` which prints IR it is run on, based on provided configuration.
 #[derive(Default)]
@@ -24,7 +25,7 @@ pub struct Print {
     target: Option<compact_str::CompactString>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 enum OpFilter {
     /// Print all operations
     #[default]
@@ -125,5 +126,43 @@ impl Pass for Print {
             }
         }
         Ok(())
+    }
+}
+
+impl PassInstrumentation for Print {
+    fn run_after_pass(&mut self, _pass: &dyn OperationPass, op: &OperationRef) {
+        // <Self as Pass>::run_on_operation(&mut self, op, state).unwrap();
+        std::dbg!(&self.filter);
+
+        match self.filter {
+            OpFilter::All => {
+                let target = self.target.as_deref().unwrap_or("printer");
+                log::error!(target: target, "{op}");
+            }
+            OpFilter::Type {
+                dialect,
+                op: op_name,
+            } => {
+                let name = op.name();
+                if name.dialect() == dialect && name.name() == op_name {
+                    let target = self.target.as_deref().unwrap_or("printer");
+                    log::error!(target: target, "{op}");
+                }
+            }
+            _ => todo!(), // OpFilter::Symbol(None) => {
+                          //     if let Some(sym) = op.as_symbol() {
+                          //         let name = sym.name().as_str();
+                          //         let target = self.target.as_deref().unwrap_or(name);
+                          //         log::trace!(target: target, "{}", sym.as_symbol_operation());
+                          //     }
+                          // }
+                          // OpFilter::Symbol(Some(filter)) => {
+                          //     if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
+                          //     {
+                          //         let target = self.target.as_deref().unwrap_or(filter);
+                          //         log::trace!(target: target, "{}", sym.as_symbol_operation());
+                          //     }
+                          // }
+        }
     }
 }

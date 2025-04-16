@@ -9,8 +9,8 @@ use super::{
     PassInstrumentor, PipelineParentInfo, Statistic,
 };
 use crate::{
-    traits::IsolatedFromAbove, Context, EntityMut, OpPrintingFlags, OpRegistration, Operation,
-    OperationName, OperationRef, Report,
+    pass::Print, traits::IsolatedFromAbove, Context, EntityMut, OpPrintingFlags, OpRegistration,
+    Operation, OperationName, OperationRef, Report,
 };
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -169,8 +169,12 @@ impl PassManager {
         self
     }
 
-    pub fn enable_ir_printing(&mut self, _config: IRPrintingConfig) {
-        todo!()
+    // pub fn enable_ir_printing(&mut self, _config: IRPrintingConfig) {
+    pub fn enable_ir_printing(&mut self) {
+        // self.add_instrumentation(pi)
+        let p = Box::new(Print::any());
+        self.add_instrumentation(p);
+        // todo!()
     }
 
     pub fn enable_timing(&mut self, yes: bool) -> &mut Self {
