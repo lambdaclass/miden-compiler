@@ -9,7 +9,6 @@ use crate::{
     AttributeValue, EntityWithId, SuccessorOperands, Value,
 };
 
-#[derive(Debug)]
 pub struct OpPrintingFlags {
     pub print_entry_block_headers: bool,
     pub print_intrinsic_attributes: bool,
