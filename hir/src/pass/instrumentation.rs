@@ -5,7 +5,7 @@ use compact_str::CompactString;
 use smallvec::SmallVec;
 
 use super::OperationPass;
-use crate::{OperationName, OperationRef};
+use crate::{pass::PassExecutionState, OperationName, OperationRef};
 
 #[allow(unused_variables)]
 pub trait PassInstrumentation {
@@ -22,7 +22,13 @@ pub trait PassInstrumentation {
     ) {
     }
     fn run_before_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {}
-    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {}
+    fn run_after_pass(
+        &mut self,
+        pass: &dyn OperationPass,
+        op: &OperationRef,
+        state: &PassExecutionState,
+    ) {
+    }
     fn run_after_pass_failed(&mut self, pass: &dyn OperationPass, op: &OperationRef) {}
     fn run_before_analysis(&mut self, name: &str, id: &TypeId, op: &OperationRef) {}
     fn run_after_analysis(&mut self, name: &str, id: &TypeId, op: &OperationRef) {}
@@ -54,8 +60,13 @@ impl<P: ?Sized + PassInstrumentation> PassInstrumentation for Box<P> {
         (**self).run_before_pass(pass, op);
     }
 
-    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
-        (**self).run_after_pass(pass, op);
+    fn run_after_pass(
+        &mut self,
+        pass: &dyn OperationPass,
+        op: &OperationRef,
+        state: &PassExecutionState,
+    ) {
+        (**self).run_after_pass(pass, op, state);
     }
 
     fn run_after_pass_failed(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
@@ -97,8 +108,13 @@ impl PassInstrumentor {
         self.instrument(|pi| pi.run_before_pass(pass, op));
     }
 
-    pub fn run_after_pass(&self, pass: &dyn OperationPass, op: &OperationRef) {
-        self.instrument(|pi| pi.run_after_pass(pass, op));
+    pub fn run_after_pass(
+        &self,
+        pass: &dyn OperationPass,
+        op: &OperationRef,
+        state: &PassExecutionState,
+    ) {
+        self.instrument(|pi| pi.run_after_pass(pass, op, state));
     }
 
     pub fn run_after_pass_failed(&self, pass: &dyn OperationPass, op: &OperationRef) {

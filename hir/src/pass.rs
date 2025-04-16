@@ -16,6 +16,7 @@ pub use self::{
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
 };
+use crate::OperationRef;
 
 /// A `Pass` which prints IR it is run on, based on provided configuration.
 #[derive(Default)]
@@ -125,5 +126,17 @@ impl Pass for Print {
             }
         }
         Ok(())
+    }
+}
+
+impl PassInstrumentation for Print {
+    fn run_after_pass(
+        &mut self,
+        _pass: &dyn OperationPass,
+        _op: &OperationRef,
+        _state: &PassExecutionState,
+    ) {
+        // Self::run_on_operation(&mut self, op, state).unwrap();
+        todo!();
     }
 }

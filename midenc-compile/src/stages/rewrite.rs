@@ -49,6 +49,7 @@ impl Stage for ApplyRewritesStage {
 
         // Construct a pass manager with the default pass pipeline
         let mut pm = PassManager::on::<builtin::World>(context.clone(), Nesting::Implicit);
+        pm.enable_ir_printing();
 
         let mut rewrite_config = GreedyRewriteConfig::default();
         rewrite_config.with_region_simplification_level(RegionSimplificationLevel::Normal);
