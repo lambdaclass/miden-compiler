@@ -9,8 +9,8 @@ use super::{
     PassInstrumentor, PipelineParentInfo, Statistic,
 };
 use crate::{
-    pass::Print, traits::IsolatedFromAbove, Context, EntityMut, OpPrintingFlags, OpRegistration,
-    Operation, OperationName, OperationRef, Report,
+    traits::IsolatedFromAbove, Context, EntityMut, OpPrintingFlags, OpRegistration, Operation,
+    OperationName, OperationRef, Report,
 };
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -952,7 +952,7 @@ impl OpToOpPassAdaptor {
             if result.is_err() {
                 instrumentor.run_after_pass_failed(pass, &op);
             } else {
-                instrumentor.run_after_pass(pass, &op, &execution_state);
+                instrumentor.run_after_pass(pass, &op);
             }
         }
 
