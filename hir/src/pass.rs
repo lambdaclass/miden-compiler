@@ -16,13 +16,25 @@ pub use self::{
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
 };
-use crate::{EntityRef, Operation, OperationRef};
+use crate::{
+    alloc::{string::String, vec::Vec},
+    EntityRef, Operation, OperationRef,
+};
 
 /// A `Pass` which prints IR it is run on, based on provided configuration.
 #[derive(Default)]
 pub struct Print {
     filter: OpFilter,
+    pass_filter: PassFilter,
     target: Option<compact_str::CompactString>,
+}
+
+#[allow(dead_code)]
+#[derive(Default, Debug)]
+enum PassFilter {
+    #[default]
+    All,
+    Certain(Vec<String>),
 }
 
 #[derive(Default, Debug)]
@@ -45,6 +57,7 @@ impl Print {
     pub fn any() -> Self {
         Self {
             filter: OpFilter::All,
+            pass_filter: PassFilter::All,
             target: None,
         }
     }
@@ -55,14 +68,21 @@ impl Print {
         let op = <T as crate::OpRegistration>::name();
         Self {
             filter: OpFilter::Type { dialect, op },
+            pass_filter: PassFilter::All,
             target: None,
         }
+    }
+
+    pub fn with_pass_filter(mut self, passes: Vec<String>) -> Self {
+        self.pass_filter = PassFilter::Certain(passes);
+        self
     }
 
     /// Create a printer that only prints `Symbol` operations containing `name`
     pub fn symbol_matching(name: &'static str) -> Self {
         Self {
             filter: OpFilter::Symbol(Some(name)),
+            pass_filter: PassFilter::All,
             target: None,
         }
     }
@@ -109,6 +129,13 @@ impl Print {
             }
         }
     }
+
+    fn should_print(&self, pass: &dyn OperationPass) -> bool {
+        match &self.pass_filter {
+            PassFilter::All => true,
+            PassFilter::Certain(passes) => passes.iter().any(|p| p == pass.name()),
+        }
+    }
 }
 
 impl Pass for Print {
@@ -134,10 +161,10 @@ impl Pass for Print {
 }
 
 impl PassInstrumentation for Print {
-    fn run_after_pass(&mut self, _pass: &dyn OperationPass, op: &OperationRef) {
-        std::dbg!(&self.filter);
-
-        let op = op.borrow();
-        self.print_ir(op);
+    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
+        if self.should_print(pass) {
+            let op = op.borrow();
+            self.print_ir(op);
+        }
     }
 }

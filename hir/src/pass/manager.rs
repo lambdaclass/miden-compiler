@@ -36,7 +36,7 @@ pub enum PassDisplayMode {
 
 // TODO(pauls)
 #[allow(unused)]
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct IRPrintingConfig {
     print_module_scope: bool,
     print_after_only_on_change: bool,
@@ -191,8 +191,16 @@ impl PassManager {
         self
     }
 
-    pub fn enable_ir_printing(&mut self, _config: IRPrintingConfig) {
-        let p = Box::new(Print::any());
+    pub fn enable_ir_printing(&mut self, config: IRPrintingConfig) {
+        std::dbg!(&config);
+        let print = if config.print_ir_after_all {
+            Print::any()
+        } else if !config.print_ir_after_pass.is_empty() {
+            Print::any().with_pass_filter(config.print_ir_after_pass)
+        } else {
+            Print::any()
+        };
+        let p = Box::new(print);
         self.add_instrumentation(p);
     }
 

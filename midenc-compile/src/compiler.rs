@@ -503,9 +503,10 @@ impl Compiler {
         options.no_link = codegen.no_link;
         options.print_cfg_after_all = unstable.print_cfg_after_all;
         options.print_cfg_after_pass = unstable.print_cfg_after_pass;
-        // options.print_ir_after_all = unstable.print_ir_after_all;
-        options.print_ir_after_all = true;
-        options.print_ir_after_pass = unstable.print_ir_after_pass;
+        options.print_ir_after_all = unstable.print_ir_after_all;
+        // options.print_ir_after_all = true;
+        // options.print_ir_after_pass = unstable.print_ir_after_pass;
+        options.print_ir_after_pass = vec!["canonicalizer".to_string()];
         std::dbg!(&options);
 
         // Establish --target-dir
