@@ -10,7 +10,7 @@ pub mod statistics;
 pub use self::{
     analysis::{Analysis, AnalysisManager, OperationAnalysis, PreservedAnalyses},
     instrumentation::{PassInstrumentation, PassInstrumentor, PipelineParentInfo},
-    manager::{Nesting, OpPassManager, PassDisplayMode, PassManager},
+    manager::{IRPrintingConfig, Nesting, OpPassManager, PassDisplayMode, PassManager},
     pass::{OperationPass, Pass, PassExecutionState},
     registry::{PassInfo, PassPipelineInfo},
     specialization::PassTarget,

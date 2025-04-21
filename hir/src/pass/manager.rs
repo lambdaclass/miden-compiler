@@ -1,7 +1,14 @@
-use alloc::{boxed::Box, collections::BTreeMap, format, rc::Rc, string::ToString};
+use alloc::{
+    boxed::Box,
+    collections::BTreeMap,
+    format,
+    rc::Rc,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use compact_str::{CompactString, ToCompactString};
-use midenc_session::diagnostics::Severity;
+use midenc_session::{diagnostics::Severity, Options};
 use smallvec::{smallvec, SmallVec};
 
 use super::{
@@ -29,11 +36,25 @@ pub enum PassDisplayMode {
 
 // TODO(pauls)
 #[allow(unused)]
+#[derive(Default)]
 pub struct IRPrintingConfig {
     print_module_scope: bool,
     print_after_only_on_change: bool,
     print_after_only_on_failure: bool,
+    // NOTE: Taken from the Options struct
+    print_ir_after_all: bool,
+    print_ir_after_pass: Vec<String>,
     flags: OpPrintingFlags,
+}
+
+impl From<&Options> for IRPrintingConfig {
+    fn from(options: &Options) -> Self {
+        let mut irprintconfig = IRPrintingConfig::default();
+        irprintconfig.print_ir_after_all = options.print_ir_after_all;
+        irprintconfig.print_ir_after_pass = options.print_ir_after_pass.clone();
+
+        irprintconfig
+    }
 }
 
 /// The main pass manager and pipeline builder
@@ -73,6 +94,7 @@ impl PassManager {
     ///
     /// The created pass manager can schedule operations that match type `T`.
     pub fn on<T: OpRegistration>(context: Rc<Context>, nesting: Nesting) -> Self {
+        // let a = context.session().options;
         Self::new(context, <T as OpRegistration>::full_name(), nesting)
     }
 
@@ -169,12 +191,9 @@ impl PassManager {
         self
     }
 
-    // pub fn enable_ir_printing(&mut self, _config: IRPrintingConfig) {
-    pub fn enable_ir_printing(&mut self) {
-        // self.add_instrumentation(pi)
+    pub fn enable_ir_printing(&mut self, _config: IRPrintingConfig) {
         let p = Box::new(Print::any());
         self.add_instrumentation(p);
-        // todo!()
     }
 
     pub fn enable_timing(&mut self, yes: bool) -> &mut Self {
