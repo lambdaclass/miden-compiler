@@ -163,6 +163,15 @@ impl Pass for Print {
 impl PassInstrumentation for Print {
     fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
         if self.should_print(pass) {
+            std::dbg!("RUN AFTER PASS");
+            let op = op.borrow();
+            self.print_ir(op);
+        }
+    }
+
+    fn run_before_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
+        if self.should_print(pass) {
+            std::dbg!("RUN BEFORE PASS");
             let op = op.borrow();
             self.print_ir(op);
         }
