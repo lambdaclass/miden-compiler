@@ -16,7 +16,7 @@ pub use self::{
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
 };
-use crate::OperationRef;
+use crate::{EntityRef, Operation, OperationRef};
 
 /// A `Pass` which prints IR it is run on, based on provided configuration.
 #[derive(Default)]
@@ -76,65 +76,8 @@ impl Print {
         self.target = Some(target);
         self
     }
-}
 
-impl Pass for Print {
-    type Target = crate::Operation;
-
-    fn name(&self) -> &'static str {
-        "print"
-    }
-
-    fn can_schedule_on(&self, _name: &crate::OperationName) -> bool {
-        true
-    }
-
-    fn run_on_operation(
-        &mut self,
-        op: crate::EntityMut<'_, Self::Target>,
-        _state: &mut PassExecutionState,
-    ) -> Result<(), crate::Report> {
-        let op = op.into_entity_ref();
-        match self.filter {
-            OpFilter::All => {
-                let target = self.target.as_deref().unwrap_or("printer");
-                log::trace!(target: target, "{op}");
-            }
-            OpFilter::Type {
-                dialect,
-                op: op_name,
-            } => {
-                let name = op.name();
-                if name.dialect() == dialect && name.name() == op_name {
-                    let target = self.target.as_deref().unwrap_or("printer");
-                    log::trace!(target: target, "{op}");
-                }
-            }
-            OpFilter::Symbol(None) => {
-                if let Some(sym) = op.as_symbol() {
-                    let name = sym.name().as_str();
-                    let target = self.target.as_deref().unwrap_or(name);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
-                }
-            }
-            OpFilter::Symbol(Some(filter)) => {
-                if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
-                {
-                    let target = self.target.as_deref().unwrap_or(filter);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-impl PassInstrumentation for Print {
-    fn run_after_pass(&mut self, _pass: &dyn OperationPass, op: &OperationRef) {
-        // <Self as Pass>::run_on_operation(&mut self, op, state).unwrap();
-        std::dbg!(&self.filter);
-
-        let op = op.borrow();
+    fn print_ir(&self, op: EntityRef<'_, Operation>) {
         match self.filter {
             OpFilter::All => {
                 let target = self.target.as_deref().unwrap_or("printer");
@@ -154,16 +97,47 @@ impl PassInstrumentation for Print {
                 if let Some(sym) = op.as_symbol() {
                     let name = sym.name().as_str();
                     let target = self.target.as_deref().unwrap_or(name);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                    log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
             OpFilter::Symbol(Some(filter)) => {
                 if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
                 {
                     let target = self.target.as_deref().unwrap_or(filter);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                    log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
         }
+    }
+}
+
+impl Pass for Print {
+    type Target = crate::Operation;
+
+    fn name(&self) -> &'static str {
+        "print"
+    }
+
+    fn can_schedule_on(&self, _name: &crate::OperationName) -> bool {
+        true
+    }
+
+    fn run_on_operation(
+        &mut self,
+        op: crate::EntityMut<'_, Self::Target>,
+        _state: &mut PassExecutionState,
+    ) -> Result<(), crate::Report> {
+        let op = op.into_entity_ref();
+        self.print_ir(op);
+        Ok(())
+    }
+}
+
+impl PassInstrumentation for Print {
+    fn run_after_pass(&mut self, _pass: &dyn OperationPass, op: &OperationRef) {
+        std::dbg!(&self.filter);
+
+        let op = op.borrow();
+        self.print_ir(op);
     }
 }
