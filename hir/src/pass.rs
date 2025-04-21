@@ -32,8 +32,10 @@ pub struct Print {
 #[allow(dead_code)]
 #[derive(Default, Debug)]
 enum PassFilter {
+    /// Print IR regardless of pass
     #[default]
     All,
+    /// Only print IR if the pass's name matches one of these matches.
     Certain(Vec<String>),
 }
 
