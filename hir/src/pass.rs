@@ -134,6 +134,7 @@ impl PassInstrumentation for Print {
         // <Self as Pass>::run_on_operation(&mut self, op, state).unwrap();
         std::dbg!(&self.filter);
 
+        let op = op.borrow();
         match self.filter {
             OpFilter::All => {
                 let target = self.target.as_deref().unwrap_or("printer");
@@ -149,20 +150,20 @@ impl PassInstrumentation for Print {
                     log::error!(target: target, "{op}");
                 }
             }
-            _ => todo!(), // OpFilter::Symbol(None) => {
-                          //     if let Some(sym) = op.as_symbol() {
-                          //         let name = sym.name().as_str();
-                          //         let target = self.target.as_deref().unwrap_or(name);
-                          //         log::trace!(target: target, "{}", sym.as_symbol_operation());
-                          //     }
-                          // }
-                          // OpFilter::Symbol(Some(filter)) => {
-                          //     if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
-                          //     {
-                          //         let target = self.target.as_deref().unwrap_or(filter);
-                          //         log::trace!(target: target, "{}", sym.as_symbol_operation());
-                          //     }
-                          // }
+            OpFilter::Symbol(None) => {
+                if let Some(sym) = op.as_symbol() {
+                    let name = sym.name().as_str();
+                    let target = self.target.as_deref().unwrap_or(name);
+                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                }
+            }
+            OpFilter::Symbol(Some(filter)) => {
+                if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
+                {
+                    let target = self.target.as_deref().unwrap_or(filter);
+                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                }
+            }
         }
     }
 }
