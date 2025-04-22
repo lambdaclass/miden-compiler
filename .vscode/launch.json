@@ -5,22 +5,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-        "type": "lldb",
-        "request": "launch",
-        "name": "Debug compilador",
-        "cargo": {
-          "args": ["build", "--bin=midenc", "--package=midenc"],
-          "filter": {
-            "name": "midenc",
-            "kind": "bin"
-          }
-        },
-        "args": ["compile", "ejemplo_wasm/wasm_sum_sub_extra.wasm"],
-        // "args": ["compile", "root_ns:root@1.0.masm"],
-        "cwd": "${workspaceFolder}",
-        "sourceLanguages": ["rust"]
-    },
-    {
       "type": "lldb",
       "request": "launch",
       "name": "Debug unit tests in library 'midenc_codegen_masm2'",
