@@ -94,7 +94,6 @@ impl PassManager {
     ///
     /// The created pass manager can schedule operations that match type `T`.
     pub fn on<T: OpRegistration>(context: Rc<Context>, nesting: Nesting) -> Self {
-        // let a = context.session().options;
         Self::new(context, <T as OpRegistration>::full_name(), nesting)
     }
 
@@ -192,16 +191,18 @@ impl PassManager {
     }
 
     pub fn enable_ir_printing(&mut self, config: IRPrintingConfig) {
-        std::dbg!(&config);
         let print = if config.print_ir_after_all {
-            Print::any()
+            Some(Print::any())
         } else if !config.print_ir_after_pass.is_empty() {
-            Print::any().with_pass_filter(config.print_ir_after_pass)
+            Some(Print::any().with_pass_filter(config.print_ir_after_pass))
         } else {
-            Print::any()
+            None
         };
-        let p = Box::new(print);
-        self.add_instrumentation(p);
+
+        if let Some(print) = print {
+            let print = Box::new(print);
+            self.add_instrumentation(print);
+        }
     }
 
     pub fn enable_timing(&mut self, yes: bool) -> &mut Self {

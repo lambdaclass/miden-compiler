@@ -29,13 +29,13 @@ pub struct Print {
     target: Option<compact_str::CompactString>,
 }
 
-#[allow(dead_code)]
+/// Filter for the different passes.
 #[derive(Default, Debug)]
 enum PassFilter {
-    /// Print IR regardless of pass
+    /// Print IR regardless of which pass is executed.
     #[default]
     All,
-    /// Only print IR if the pass's name matches one of these matches.
+    /// Only print IR if the pass's name is present in the vector.
     Certain(Vec<String>),
 }
 
@@ -75,6 +75,8 @@ impl Print {
         }
     }
 
+    /// Adds a PassFilter to Print. IR will only be printed before and after those passes are
+    /// executed.
     pub fn with_pass_filter(mut self, passes: Vec<String>) -> Self {
         self.pass_filter = PassFilter::Certain(passes);
         self
@@ -103,7 +105,7 @@ impl Print {
         match self.filter {
             OpFilter::All => {
                 let target = self.target.as_deref().unwrap_or("printer");
-                log::error!(target: target, "{op}");
+                log::trace!(target: target, "{op}");
             }
             OpFilter::Type {
                 dialect,
@@ -112,21 +114,21 @@ impl Print {
                 let name = op.name();
                 if name.dialect() == dialect && name.name() == op_name {
                     let target = self.target.as_deref().unwrap_or("printer");
-                    log::error!(target: target, "{op}");
+                    log::trace!(target: target, "{op}");
                 }
             }
             OpFilter::Symbol(None) => {
                 if let Some(sym) = op.as_symbol() {
                     let name = sym.name().as_str();
                     let target = self.target.as_deref().unwrap_or(name);
-                    log::error!(target: target, "{}", sym.as_symbol_operation());
+                    log::trace!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
             OpFilter::Symbol(Some(filter)) => {
                 if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
                 {
                     let target = self.target.as_deref().unwrap_or(filter);
-                    log::error!(target: target, "{}", sym.as_symbol_operation());
+                    log::trace!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
         }
@@ -165,7 +167,6 @@ impl Pass for Print {
 impl PassInstrumentation for Print {
     fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
         if self.should_print(pass) {
-            std::dbg!("RUN AFTER PASS");
             let op = op.borrow();
             self.print_ir(op);
         }
@@ -173,7 +174,6 @@ impl PassInstrumentation for Print {
 
     fn run_before_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
         if self.should_print(pass) {
-            std::dbg!("RUN BEFORE PASS");
             let op = op.borrow();
             self.print_ir(op);
         }
