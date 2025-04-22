@@ -113,7 +113,7 @@ pub fn transform_spills(
     analysis: &mut SpillAnalysis,
     interface: &mut dyn TransformSpillsInterface,
     analysis_manager: AnalysisManager,
-) -> Result<(), Report> {
+) -> Result<bool, Report> {
     assert!(
         op.borrow().implements::<dyn SingleRegion>(),
         "the spills transformation is not supported when the root op is multi-region"
@@ -252,7 +252,8 @@ pub fn transform_spills(
         )?;
     }
 
-    Ok(())
+    // QUESTION: If the code has reached this point, then, in theory, it must've gotten changed. Right? Requires double check.
+    Ok(true)
 }
 
 fn rewrite_single_block_spills(

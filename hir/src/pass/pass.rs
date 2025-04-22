@@ -44,7 +44,7 @@ pub trait OperationPass {
         &mut self,
         op: OperationRef,
         state: &mut PassExecutionState,
-    ) -> Result<(), Report>;
+    ) -> Result<bool, Report>;
     fn run_pipeline(
         &mut self,
         pipeline: &mut OpPassManager,
@@ -121,7 +121,7 @@ where
         &mut self,
         mut op: OperationRef,
         state: &mut PassExecutionState,
-    ) -> Result<(), Report> {
+    ) -> Result<bool, Report> {
         let op = <<P as Pass>::Target as PassTarget>::into_target_mut(&mut op);
         <P as Pass>::run_on_operation(self, op, state)
     }
@@ -231,7 +231,7 @@ pub trait Pass: Sized + Any {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<(), Report>;
+    ) -> Result<bool, Report>;
     /// Schedule an arbitrary pass pipeline on the provided operation.
     ///
     /// This can be invoke any time in a pass to dynamic schedule more passes. The provided
@@ -330,7 +330,7 @@ where
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<(), Report> {
+    ) -> Result<bool, Report> {
         (**self).run_on_operation(op, state)
     }
 

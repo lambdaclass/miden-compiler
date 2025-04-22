@@ -93,10 +93,10 @@ impl Pass for Canonicalizer {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<(), Report> {
+    ) -> Result<bool, Report> {
         let Some(rewrites) = self.rewrites.as_ref() else {
             log::debug!("skipping canonicalization as there are no rewrite patterns to apply");
-            return Ok(());
+            return Ok(false);
         };
         let op = {
             let ptr = op.as_operation_ref();
@@ -129,16 +129,20 @@ impl Pass for Canonicalizer {
         }
 
         let op = op.borrow();
-        match converged {
+        let changed = match converged {
             Ok(changed) => {
-                log::debug!("canonicalization converged for '{}', changed={changed}", op.name())
+                log::debug!("canonicalization converged for '{}', changed={changed}", op.name());
+                changed
             }
-            Err(changed) => log::warn!(
-                "canonicalization failed to converge for '{}', changed={changed}",
-                op.name()
-            ),
-        }
+            Err(changed) => {
+                log::warn!(
+                    "canonicalization failed to converge for '{}', changed={changed}",
+                    op.name()
+                );
+                changed
+            }
+        };
 
-        Ok(())
+        Ok(changed)
     }
 }

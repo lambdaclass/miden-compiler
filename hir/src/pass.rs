@@ -157,10 +157,10 @@ impl Pass for Print {
         &mut self,
         op: crate::EntityMut<'_, Self::Target>,
         _state: &mut PassExecutionState,
-    ) -> Result<(), crate::Report> {
+    ) -> Result<bool, crate::Report> {
         let op = op.into_entity_ref();
         self.print_ir(op);
-        Ok(())
+        Ok(false)
     }
 }
 

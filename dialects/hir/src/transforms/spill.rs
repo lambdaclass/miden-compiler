@@ -31,14 +31,14 @@ impl Pass for TransformSpills {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<(), Report> {
+    ) -> Result<bool, Report> {
         let function = op.into_entity_ref();
         log::debug!(target: "insert-spills", "computing and inserting spills for {}", function.as_operation());
 
         if function.is_declaration() {
             log::debug!(target: "insert-spills", "function has no body, no spills needed!");
             state.preserved_analyses_mut().preserve_all();
-            return Ok(());
+            return Ok(false);
         }
         let mut analysis =
             state.analysis_manager().get_analysis_for::<SpillAnalysis, Function>()?;
@@ -46,7 +46,7 @@ impl Pass for TransformSpills {
         if !analysis.has_spills() {
             log::debug!(target: "insert-spills", "no spills needed!");
             state.preserved_analyses_mut().preserve_all();
-            return Ok(());
+            return Ok(false);
         }
 
         // Take ownership of the spills analysis so that we can mutate the analysis state during

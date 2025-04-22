@@ -956,9 +956,9 @@ impl OpToOpPassAdaptor {
 
         let mut result =
             if let Some(adaptor) = pass.as_any_mut().downcast_mut::<OpToOpPassAdaptor>() {
-                adaptor.run_on_operation(op, &mut execution_state, verify)
+                adaptor.run_on_operation(op, &mut execution_state, verify).map(|_| ())
             } else {
-                pass.run_on_operation(op, &mut execution_state)
+                pass.run_on_operation(op, &mut execution_state).map(|_| ())
             };
 
         // Invalidate any non-preserved analyses
@@ -1006,7 +1006,7 @@ impl OpToOpPassAdaptor {
         op: OperationRef,
         state: &mut PassExecutionState,
         verify: bool,
-    ) -> Result<(), Report> {
+    ) -> Result<bool, Report> {
         let analysis_manager = state.analysis_manager();
         let instrumentor = analysis_manager.pass_instrumentor();
         let parent_info = PipelineParentInfo {
@@ -1041,7 +1041,7 @@ impl OpToOpPassAdaptor {
             }
         }
 
-        Ok(())
+        Ok(false)
     }
 }
 
@@ -1078,7 +1078,7 @@ impl Pass for OpToOpPassAdaptor {
         &mut self,
         _op: EntityMut<'_, Operation>,
         _state: &mut PassExecutionState,
-    ) -> Result<(), Report> {
+    ) -> Result<bool, Report> {
         unreachable!("unexpected call to `Pass::run_on_operation` for OpToOpPassAdaptor")
     }
 }

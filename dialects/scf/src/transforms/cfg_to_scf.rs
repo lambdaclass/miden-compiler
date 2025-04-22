@@ -51,7 +51,7 @@ impl Pass for LiftControlFlowToSCF {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<(), Report> {
+    ) -> Result<bool, Report> {
         let mut transformation = ControlFlowToSCFTransformation;
         let mut changed = false;
 
@@ -130,7 +130,8 @@ impl Pass for LiftControlFlowToSCF {
         });
 
         if result.was_interrupted() {
-            return result.into_result();
+            // TODO: Maybe Change into_result implementation
+            return result.into_result().map(|_| false);
         }
 
         log::debug!(
@@ -141,7 +142,7 @@ impl Pass for LiftControlFlowToSCF {
             state.preserved_analyses_mut().preserve_all();
         }
 
-        Ok(())
+        Ok(changed)
     }
 }
 
