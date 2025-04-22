@@ -165,7 +165,7 @@ impl Pass for Print {
 }
 
 impl PassInstrumentation for Print {
-    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
+    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef, _changed: bool) {
         if self.should_print(pass) {
             let op = op.borrow();
             self.print_ir(op);

@@ -956,9 +956,9 @@ impl OpToOpPassAdaptor {
 
         let mut result =
             if let Some(adaptor) = pass.as_any_mut().downcast_mut::<OpToOpPassAdaptor>() {
-                adaptor.run_on_operation(op, &mut execution_state, verify).map(|_| ())
+                adaptor.run_on_operation(op, &mut execution_state, verify)
             } else {
-                pass.run_on_operation(op, &mut execution_state).map(|_| ())
+                pass.run_on_operation(op, &mut execution_state)
             };
 
         // Invalidate any non-preserved analyses
@@ -976,20 +976,25 @@ impl OpToOpPassAdaptor {
             // * If the pass said that it preserved all analyses then it can't have permuted the IR
             let run_verifier_now = !execution_state.preserved_analyses().is_all();
             if run_verifier_now {
-                result = Self::verify(&op, run_verifier_recursively);
+                result = Self::verify(&op, run_verifier_recursively).map(|_| true);
             }
         }
 
         if let Some(instrumentor) = pi.as_deref() {
+            let in_result = if let Ok(result) = result {
+                result
+            } else {
+                false
+            };
             if result.is_err() {
                 instrumentor.run_after_pass_failed(pass, &op);
             } else {
-                instrumentor.run_after_pass(pass, &op);
+                instrumentor.run_after_pass(pass, &op, in_result);
             }
         }
 
         // Return the pass result
-        result
+        result.map(|_| ())
     }
 
     fn verify(op: &OperationRef, verify_recursively: bool) -> Result<(), Report> {
