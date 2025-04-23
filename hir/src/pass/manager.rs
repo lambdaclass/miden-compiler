@@ -44,14 +44,17 @@ pub struct IRPrintingConfig {
     // NOTE: Taken from the Options struct
     print_ir_after_all: bool,
     print_ir_after_pass: Vec<String>,
+    print_ir_after_modified: bool,
     flags: OpPrintingFlags,
 }
 
 impl From<&Options> for IRPrintingConfig {
     fn from(options: &Options) -> Self {
         let mut irprintconfig = IRPrintingConfig::default();
+
         irprintconfig.print_ir_after_all = options.print_ir_after_all;
         irprintconfig.print_ir_after_pass = options.print_ir_after_pass.clone();
+        irprintconfig.print_ir_after_modified = options.print_ir_after_modified;
 
         irprintconfig
     }
@@ -199,7 +202,12 @@ impl PassManager {
             None
         };
 
-        if let Some(print) = print {
+        //TODO: Refactor this
+        if let Some(mut print) = print {
+            if config.print_ir_after_modified {
+                std::dbg!("ONLY WHEN MODIFIED");
+                print.with_only_print_when_modified();
+            }
             let print = Box::new(print);
             self.add_instrumentation(print);
         }

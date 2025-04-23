@@ -27,6 +27,7 @@ pub struct Print {
     filter: OpFilter,
     pass_filter: PassFilter,
     target: Option<compact_str::CompactString>,
+    only_when_modified: bool,
 }
 
 /// Filter for the different passes.
@@ -61,6 +62,7 @@ impl Print {
             filter: OpFilter::All,
             pass_filter: PassFilter::All,
             target: None,
+            only_when_modified: false,
         }
     }
 
@@ -72,14 +74,22 @@ impl Print {
             filter: OpFilter::Type { dialect, op },
             pass_filter: PassFilter::All,
             target: None,
+            only_when_modified: false,
         }
     }
 
+    // pub fn from_config(config: IRPrintingConfig) {
+    //     if config.print
+    // }
     /// Adds a PassFilter to Print. IR will only be printed before and after those passes are
     /// executed.
     pub fn with_pass_filter(mut self, passes: Vec<String>) -> Self {
         self.pass_filter = PassFilter::Certain(passes);
         self
+    }
+
+    pub fn with_only_print_when_modified(&mut self) {
+        self.only_when_modified = true;
     }
 
     /// Create a printer that only prints `Symbol` operations containing `name`
@@ -88,6 +98,7 @@ impl Print {
             filter: OpFilter::Symbol(Some(name)),
             pass_filter: PassFilter::All,
             target: None,
+            only_when_modified: false,
         }
     }
 
@@ -105,7 +116,7 @@ impl Print {
         match self.filter {
             OpFilter::All => {
                 let target = self.target.as_deref().unwrap_or("printer");
-                log::trace!(target: target, "{op}");
+                log::error!(target: target, "{op}");
             }
             OpFilter::Type {
                 dialect,
@@ -114,21 +125,21 @@ impl Print {
                 let name = op.name();
                 if name.dialect() == dialect && name.name() == op_name {
                     let target = self.target.as_deref().unwrap_or("printer");
-                    log::trace!(target: target, "{op}");
+                    log::error!(target: target, "{op}");
                 }
             }
             OpFilter::Symbol(None) => {
                 if let Some(sym) = op.as_symbol() {
                     let name = sym.name().as_str();
                     let target = self.target.as_deref().unwrap_or(name);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                    log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
             OpFilter::Symbol(Some(filter)) => {
                 if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
                 {
                     let target = self.target.as_deref().unwrap_or(filter);
-                    log::trace!(target: target, "{}", sym.as_symbol_operation());
+                    log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
         }
@@ -165,14 +176,35 @@ impl Pass for Print {
 }
 
 impl PassInstrumentation for Print {
-    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef, _changed: bool) {
-        if self.should_print(pass) {
+    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef, changed: bool) {
+        std::println!(
+            "
+------------------------------------DESPUES:\
+             {}-------------------------------------------------------
+",
+            pass.name()
+        );
+        std::println!("RESULTADO DE CHANGED: {}", changed);
+        #[allow(clippy::needless_bool)]
+        // Always print, unless "only_when_modified" has been set and there have not been changes.
+        let print_when_changed = if self.only_when_modified && !changed {
+            false
+        } else {
+            true
+        };
+        if self.should_print(pass) && print_when_changed {
             let op = op.borrow();
             self.print_ir(op);
         }
     }
 
     fn run_before_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
+        std::println!(
+            "
+------------------------------------ANTES:{}-------------------------------------------------------
+",
+            pass.name()
+        );
         if self.should_print(pass) {
             let op = op.borrow();
             self.print_ir(op);
