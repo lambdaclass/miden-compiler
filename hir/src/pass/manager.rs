@@ -1,11 +1,4 @@
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    format,
-    rc::Rc,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{boxed::Box, collections::BTreeMap, format, rc::Rc, string::ToString, vec::Vec};
 
 use compact_str::{CompactString, ToCompactString};
 use midenc_session::{diagnostics::Severity, Options};
@@ -44,16 +37,18 @@ pub struct IRPrintingConfig {
     print_after_only_on_failure: bool,
     // NOTE: Taken from the Options struct
     print_ir_after_all: bool,
-    print_ir_after_pass: Vec<String>,
+    print_ir_after_pass: Vec<PassType>,
     print_ir_after_modified: bool,
     flags: OpPrintingFlags,
 }
 
 impl From<&Options> for IRPrintingConfig {
     fn from(options: &Options) -> Self {
+        let pass_filters: Vec<PassType> =
+            options.print_ir_after_pass.iter().map(|a| a.into()).collect();
         IRPrintingConfig {
             print_ir_after_all: options.print_ir_after_all,
-            print_ir_after_pass: options.print_ir_after_pass.clone(),
+            print_ir_after_pass: pass_filters,
             print_ir_after_modified: options.print_ir_after_modified,
             ..Default::default()
         }
@@ -987,9 +982,11 @@ impl OpToOpPassAdaptor {
             //
             // * If the pass said that it preserved all analyses then it can't have permuted the IR
             let run_verifier_now = !execution_state.preserved_analyses().is_all();
+
             if run_verifier_now {
-                result =
-                    Self::verify(&op, run_verifier_recursively).map(|_| IRAfterPass::Unchanged);
+                if let Err(verification_result) = Self::verify(&op, run_verifier_recursively) {
+                    result = result.map_err(|_| verification_result);
+                }
             }
         }
 

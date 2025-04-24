@@ -15,6 +15,9 @@ pub trait OperationPass {
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
     fn name(&self) -> &'static str;
+
+    fn pass_type(&self) -> Option<PassType>;
+
     fn argument(&self) -> &'static str {
         // NOTE: Could we compute an argument string from the type name?
         ""
@@ -59,6 +62,10 @@ where
 {
     fn as_any(&self) -> &dyn Any {
         <P as Pass>::as_any(self)
+    }
+
+    fn pass_type(&self) -> Option<PassType> {
+        <P as Pass>::pass_type(self)
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
@@ -136,6 +143,7 @@ where
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PassType {
     Canonicalizer,
     ControlFlowSink,
@@ -144,6 +152,22 @@ pub enum PassType {
     SinkOperandDefs,
     SparseConditionalConstantPropagation,
     TransformSpills,
+}
+
+impl From<&String> for PassType {
+    fn from(pass_name: &String) -> Self {
+        match pass_name.as_str() {
+            "canonicalizer" => PassType::Canonicalizer,
+            "control-flow-sink" => PassType::ControlFlowSink,
+            "lift-control-flow" => PassType::LiftControlFlowToSCF,
+            "sink-operand-defs" => PassType::SinkOperandDefs,
+            "sparse-conditional-constant-propagation" => {
+                PassType::SparseConditionalConstantPropagation
+            }
+            "transform-spills" => PassType::TransformSpills,
+            _ => panic!("ERROR: '{pass_name}' unrecognized pass."),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

@@ -12,7 +12,7 @@ pub use self::{
     analysis::{Analysis, AnalysisManager, OperationAnalysis, PreservedAnalyses},
     instrumentation::{PassInstrumentation, PassInstrumentor, PipelineParentInfo},
     manager::{IRPrintingConfig, Nesting, OpPassManager, PassDisplayMode, PassManager},
-    pass::{IRAfterPass, OperationPass, Pass, PassExecutionState},
+    pass::{IRAfterPass, OperationPass, Pass, PassExecutionState, PassType},
     registry::{PassInfo, PassPipelineInfo},
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
@@ -38,7 +38,7 @@ enum PassFilter {
     #[default]
     All,
     /// Only print IR if the pass's name is present in the vector.
-    Certain(Vec<String>),
+    Certain(Vec<PassType>),
 }
 
 #[derive(Default, Debug)]
@@ -84,7 +84,7 @@ impl Print {
     // }
     /// Adds a PassFilter to Print. IR will only be printed before and after those passes are
     /// executed.
-    pub fn with_pass_filter(mut self, passes: Vec<String>) -> Self {
+    pub fn with_pass_filter(mut self, passes: Vec<PassType>) -> Self {
         self.pass_filter = PassFilter::Certain(passes);
         self
     }
@@ -149,7 +149,13 @@ impl Print {
     fn pass_filter(&self, pass: &dyn OperationPass) -> bool {
         match &self.pass_filter {
             PassFilter::All => true,
-            PassFilter::Certain(passes) => passes.iter().any(|p| p == pass.name()),
+            PassFilter::Certain(passes) => passes.iter().any(|p| {
+                if let Some(p_type) = pass.pass_type() {
+                    *p == p_type
+                } else {
+                    false
+                }
+            }),
         }
     }
 
@@ -157,8 +163,10 @@ impl Print {
         let pass_filter = self.pass_filter(pass);
 
         // Always print, unless "only_when_modified" has been set and there have not been changes.
-        let modification_filter =
-            !matches!((ir_changed, self.only_when_modified), (IRAfterPass::Unchanged, true));
+        let modification_filter = match (self.only_when_modified, ir_changed) {
+            (true, IRAfterPass::Unchanged) => false,
+            _ => true,
+        };
 
         pass_filter && modification_filter
     }
@@ -169,8 +177,8 @@ impl PassInstrumentation for Print {
         if self.only_when_modified {
             return;
         }
-        log::error!("Before the {} pass", pass.name());
         if self.pass_filter(pass) {
+            log::error!("Before the {} pass", pass.name());
             let op = op.borrow();
             self.print_ir(op);
         }
@@ -182,8 +190,8 @@ impl PassInstrumentation for Print {
         op: &OperationRef,
         changed: IRAfterPass,
     ) {
-        log::error!("After the {} pass", pass.name());
         if self.should_print(pass, changed) {
+            log::error!("After the {} pass", pass.name());
             let op = op.borrow();
             self.print_ir(op);
         }
@@ -198,7 +206,8 @@ impl PassInstrumentation for Print {
         if !self.only_when_modified {
             return;
         }
-        std::dbg!("BEFORE THE PIPELINE");
+
+        log::error!("IR before the pass pipeline");
         let op = op.borrow();
         self.print_ir(op);
     }
