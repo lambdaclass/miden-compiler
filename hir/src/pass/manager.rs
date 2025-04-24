@@ -16,8 +16,10 @@ use super::{
     PassInstrumentor, PipelineParentInfo, Statistic,
 };
 use crate::{
-    pass::Print, traits::IsolatedFromAbove, Context, EntityMut, OpPrintingFlags, OpRegistration,
-    Operation, OperationName, OperationRef, Report,
+    pass::{IRAfterPass, Print},
+    traits::IsolatedFromAbove,
+    Context, EntityMut, OpPrintingFlags, OpRegistration, Operation, OperationName, OperationRef,
+    Report,
 };
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -205,7 +207,6 @@ impl PassManager {
         //TODO: Refactor this
         if let Some(mut print) = print {
             if config.print_ir_after_modified {
-                std::dbg!("ONLY WHEN MODIFIED");
                 print.with_only_print_when_modified();
             }
             let print = Box::new(print);
@@ -984,7 +985,8 @@ impl OpToOpPassAdaptor {
             // * If the pass said that it preserved all analyses then it can't have permuted the IR
             let run_verifier_now = !execution_state.preserved_analyses().is_all();
             if run_verifier_now {
-                result = Self::verify(&op, run_verifier_recursively).map(|_| true);
+                result =
+                    Self::verify(&op, run_verifier_recursively).map(|_| IRAfterPass::Unchanged);
             }
         }
 
@@ -992,7 +994,7 @@ impl OpToOpPassAdaptor {
             let in_result = if let Ok(result) = result {
                 result
             } else {
-                false
+                IRAfterPass::Unchanged
             };
             if result.is_err() {
                 instrumentor.run_after_pass_failed(pass, &op);
@@ -1019,7 +1021,7 @@ impl OpToOpPassAdaptor {
         op: OperationRef,
         state: &mut PassExecutionState,
         verify: bool,
-    ) -> Result<bool, Report> {
+    ) -> Result<IRAfterPass, Report> {
         let analysis_manager = state.analysis_manager();
         let instrumentor = analysis_manager.pass_instrumentor();
         let parent_info = PipelineParentInfo {
@@ -1054,7 +1056,7 @@ impl OpToOpPassAdaptor {
             }
         }
 
-        Ok(false)
+        Ok(IRAfterPass::Unchanged)
     }
 }
 
@@ -1091,7 +1093,7 @@ impl Pass for OpToOpPassAdaptor {
         &mut self,
         _op: EntityMut<'_, Operation>,
         _state: &mut PassExecutionState,
-    ) -> Result<bool, Report> {
+    ) -> Result<IRAfterPass, Report> {
         unreachable!("unexpected call to `Pass::run_on_operation` for OpToOpPassAdaptor")
     }
 }

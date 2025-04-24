@@ -7,7 +7,7 @@ use midenc_hir::{
     diagnostics::Severity,
     dialects::builtin,
     dominance::DominanceInfo,
-    pass::{Pass, PassExecutionState},
+    pass::{IRAfterPass, Pass, PassExecutionState},
     Builder, EntityMut, Forward, Op, Operation, OperationName, OperationRef, RawWalk, Report,
     SmallVec, Spanned, Type, ValueRange, ValueRef, WalkResult,
 };
@@ -51,7 +51,7 @@ impl Pass for LiftControlFlowToSCF {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<bool, Report> {
+    ) -> Result<IRAfterPass, Report> {
         let mut transformation = ControlFlowToSCFTransformation;
         let mut changed = false;
 
@@ -131,7 +131,7 @@ impl Pass for LiftControlFlowToSCF {
 
         if result.was_interrupted() {
             // TODO: Maybe Change into_result implementation
-            return result.into_result().map(|_| false);
+            return result.into_result().map(|_| IRAfterPass::Unchanged);
         }
 
         log::debug!(
@@ -142,7 +142,7 @@ impl Pass for LiftControlFlowToSCF {
             state.preserved_analyses_mut().preserve_all();
         }
 
-        Ok(changed)
+        Ok(changed.into())
     }
 }
 

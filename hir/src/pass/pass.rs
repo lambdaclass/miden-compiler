@@ -44,7 +44,7 @@ pub trait OperationPass {
         &mut self,
         op: OperationRef,
         state: &mut PassExecutionState,
-    ) -> Result<bool, Report>;
+    ) -> Result<IRAfterPass, Report>;
     fn run_pipeline(
         &mut self,
         pipeline: &mut OpPassManager,
@@ -121,7 +121,7 @@ where
         &mut self,
         mut op: OperationRef,
         state: &mut PassExecutionState,
-    ) -> Result<bool, Report> {
+    ) -> Result<IRAfterPass, Report> {
         let op = <<P as Pass>::Target as PassTarget>::into_target_mut(&mut op);
         <P as Pass>::run_on_operation(self, op, state)
     }
@@ -133,6 +133,22 @@ where
         state: &mut PassExecutionState,
     ) -> Result<(), Report> {
         <P as Pass>::run_pipeline(self, pipeline, op, state)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum IRAfterPass {
+    Unchanged,
+    Changed,
+}
+
+// NOTE: I am not sure if using a From impl
+impl From<bool> for IRAfterPass {
+    fn from(ir_was_changed: bool) -> Self {
+        match ir_was_changed {
+            true => IRAfterPass::Changed,
+            false => IRAfterPass::Unchanged,
+        }
     }
 }
 
@@ -231,7 +247,7 @@ pub trait Pass: Sized + Any {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<bool, Report>;
+    ) -> Result<IRAfterPass, Report>;
     /// Schedule an arbitrary pass pipeline on the provided operation.
     ///
     /// This can be invoke any time in a pass to dynamic schedule more passes. The provided
@@ -330,7 +346,7 @@ where
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<bool, Report> {
+    ) -> Result<IRAfterPass, Report> {
         (**self).run_on_operation(op, state)
     }
 

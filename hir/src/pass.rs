@@ -11,7 +11,7 @@ pub use self::{
     analysis::{Analysis, AnalysisManager, OperationAnalysis, PreservedAnalyses},
     instrumentation::{PassInstrumentation, PassInstrumentor, PipelineParentInfo},
     manager::{IRPrintingConfig, Nesting, OpPassManager, PassDisplayMode, PassManager},
-    pass::{OperationPass, Pass, PassExecutionState},
+    pass::{IRAfterPass, OperationPass, Pass, PassExecutionState},
     registry::{PassInfo, PassPipelineInfo},
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
@@ -168,15 +168,20 @@ impl Pass for Print {
         &mut self,
         op: crate::EntityMut<'_, Self::Target>,
         _state: &mut PassExecutionState,
-    ) -> Result<bool, crate::Report> {
+    ) -> Result<IRAfterPass, crate::Report> {
         let op = op.into_entity_ref();
         self.print_ir(op);
-        Ok(false)
+        Ok(IRAfterPass::Unchanged)
     }
 }
 
 impl PassInstrumentation for Print {
-    fn run_after_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef, changed: bool) {
+    fn run_after_pass(
+        &mut self,
+        pass: &dyn OperationPass,
+        op: &OperationRef,
+        changed: IRAfterPass,
+    ) {
         std::println!(
             "
 ------------------------------------DESPUES:\
@@ -184,10 +189,10 @@ impl PassInstrumentation for Print {
 ",
             pass.name()
         );
-        std::println!("RESULTADO DE CHANGED: {}", changed);
+        // std::println!("RESULTADO DE CHANGED: {}", changed);
         #[allow(clippy::needless_bool)]
         // Always print, unless "only_when_modified" has been set and there have not been changes.
-        let print_when_changed = if self.only_when_modified && !changed {
+        let print_when_changed = if self.only_when_modified && changed == IRAfterPass::Unchanged {
             false
         } else {
             true

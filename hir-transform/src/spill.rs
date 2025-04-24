@@ -4,7 +4,7 @@ use midenc_hir::{
     adt::{SmallDenseMap, SmallSet},
     cfg::Graph,
     dominance::{DomTreeNode, DominanceFrontier, DominanceInfo},
-    pass::AnalysisManager,
+    pass::{AnalysisManager, IRAfterPass},
     traits::SingleRegion,
     BlockRef, Builder, Context, FxHashMap, OpBuilder, OpOperand, Operation, OperationRef,
     ProgramPoint, Region, RegionBranchOpInterface, RegionBranchPoint, RegionRef, Report, Rewriter,
@@ -113,7 +113,7 @@ pub fn transform_spills(
     analysis: &mut SpillAnalysis,
     interface: &mut dyn TransformSpillsInterface,
     analysis_manager: AnalysisManager,
-) -> Result<bool, Report> {
+) -> Result<IRAfterPass, Report> {
     assert!(
         op.borrow().implements::<dyn SingleRegion>(),
         "the spills transformation is not supported when the root op is multi-region"
@@ -253,7 +253,7 @@ pub fn transform_spills(
     }
 
     // QUESTION: If the code has reached this point, then, in theory, it must've gotten changed. Right? Requires double check.
-    Ok(true)
+    Ok(IRAfterPass::Changed)
 }
 
 fn rewrite_single_block_spills(
