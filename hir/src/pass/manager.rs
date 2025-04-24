@@ -859,7 +859,7 @@ impl OpToOpPassAdaptor {
         let mut op_name = None;
         if let Some(instrumentor) = instrumentor.as_deref() {
             op_name = pm.name().cloned();
-            instrumentor.run_before_pipeline(op_name.as_ref(), parent_info.as_ref().unwrap());
+            instrumentor.run_before_pipeline(op_name.as_ref(), parent_info.as_ref().unwrap(), op);
         }
 
         for pass in pm.passes_mut() {

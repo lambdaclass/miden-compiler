@@ -18,7 +18,7 @@ pub use self::{
 };
 use crate::{
     alloc::{string::String, vec::Vec},
-    EntityRef, Operation, OperationRef,
+    EntityRef, Operation, OperationName, OperationRef,
 };
 
 /// A `Pass` which prints IR it is run on, based on provided configuration.
@@ -181,5 +181,16 @@ impl PassInstrumentation for Print {
             let op = op.borrow();
             self.print_ir(op);
         }
+    }
+
+    fn run_before_pipeline(
+        &mut self,
+        _name: Option<&OperationName>,
+        _parent_info: &PipelineParentInfo,
+        op: OperationRef,
+    ) {
+        std::dbg!("BEFORE THE PIPELINE");
+        let op = op.borrow();
+        self.print_ir(op);
     }
 }
