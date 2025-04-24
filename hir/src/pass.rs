@@ -160,15 +160,6 @@ impl PassInstrumentation for Print {
         op: &OperationRef,
         changed: IRAfterPass,
     ) {
-        std::println!(
-            "
-------------------------------------DESPUES:\
-             {}-------------------------------------------------------
-",
-            pass.name()
-        );
-        // std::println!("RESULTADO DE CHANGED: {}", changed);
-        #[allow(clippy::needless_bool)]
         // Always print, unless "only_when_modified" has been set and there have not been changes.
         let print_when_changed = if self.only_when_modified && changed == IRAfterPass::Unchanged {
             false
@@ -182,12 +173,6 @@ impl PassInstrumentation for Print {
     }
 
     fn run_before_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
-        std::println!(
-            "
-------------------------------------ANTES:{}-------------------------------------------------------
-",
-            pass.name()
-        );
         if self.should_print(pass) {
             let op = op.borrow();
             self.print_ir(op);
