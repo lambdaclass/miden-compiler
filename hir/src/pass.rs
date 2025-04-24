@@ -145,11 +145,21 @@ impl Print {
         }
     }
 
-    fn should_print(&self, pass: &dyn OperationPass) -> bool {
+    fn pass_filter(&self, pass: &dyn OperationPass) -> bool {
         match &self.pass_filter {
             PassFilter::All => true,
             PassFilter::Certain(passes) => passes.iter().any(|p| p == pass.name()),
         }
+    }
+
+    fn should_print(&self, pass: &dyn OperationPass, ir_changed: IRAfterPass) -> bool {
+        let pass_filter = self.pass_filter(pass);
+
+        // Always print, unless "only_when_modified" has been set and there have not been changes.
+        let modification_filter =
+            !matches!((ir_changed, self.only_when_modified), (IRAfterPass::Unchanged, true));
+
+        pass_filter && modification_filter
     }
 }
 
@@ -160,20 +170,14 @@ impl PassInstrumentation for Print {
         op: &OperationRef,
         changed: IRAfterPass,
     ) {
-        // Always print, unless "only_when_modified" has been set and there have not been changes.
-        let print_when_changed = if self.only_when_modified && changed == IRAfterPass::Unchanged {
-            false
-        } else {
-            true
-        };
-        if self.should_print(pass) && print_when_changed {
+        if self.should_print(pass, changed) {
             let op = op.borrow();
             self.print_ir(op);
         }
     }
 
     fn run_before_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
-        if self.should_print(pass) {
+        if self.pass_filter(pass) {
             let op = op.borrow();
             self.print_ir(op);
         }
