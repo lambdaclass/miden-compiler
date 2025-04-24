@@ -16,7 +16,7 @@ use super::{
     PassInstrumentor, PipelineParentInfo, Statistic,
 };
 use crate::{
-    pass::{IRAfterPass, Print},
+    pass::{pass::PassType, IRAfterPass, Print},
     traits::IsolatedFromAbove,
     Context, EntityMut, OpPrintingFlags, OpRegistration, Operation, OperationName, OperationRef,
     Report,
@@ -746,6 +746,11 @@ impl OpToOpPassAdaptor {
         Self { pms: smallvec![pm] }
     }
 
+    #[allow(dead_code)]
+    fn pass_type(&self) -> Option<PassType> {
+        None
+    }
+
     pub fn name(&self) -> CompactString {
         use core::fmt::Write;
 
@@ -1063,6 +1068,10 @@ impl Pass for OpToOpPassAdaptor {
 
     fn name(&self) -> &'static str {
         crate::interner::Symbol::intern(self.name()).as_str()
+    }
+
+    fn pass_type(&self) -> Option<PassType> {
+        None
     }
 
     #[inline(always)]

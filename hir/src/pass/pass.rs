@@ -136,6 +136,16 @@ where
     }
 }
 
+pub enum PassType {
+    Canonicalizer,
+    ControlFlowSink,
+    LiftControlFlowToSCF,
+    OpToOpPassAdaptor,
+    SinkOperandDefs,
+    SparseConditionalConstantPropagation,
+    TransformSpills,
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum IRAfterPass {
     Unchanged,
@@ -260,6 +270,8 @@ pub trait Pass: Sized + Any {
     ) -> Result<(), Report> {
         state.run_pipeline(pipeline, op)
     }
+
+    fn pass_type(&self) -> Option<PassType>;
 }
 
 impl<P> Pass for Box<P>
@@ -284,6 +296,10 @@ where
     #[inline]
     fn name(&self) -> &'static str {
         (**self).name()
+    }
+
+    fn pass_type(&self) -> Option<PassType> {
+        (**self).pass_type()
     }
 
     #[inline]

@@ -1,8 +1,9 @@
 mod analysis;
 mod instrumentation;
 mod manager;
+/// Made public momentarily.
 #[allow(clippy::module_inception)]
-mod pass;
+pub mod pass;
 pub mod registry;
 mod specialization;
 pub mod statistics;

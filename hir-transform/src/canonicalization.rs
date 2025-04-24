@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, format, rc::Rc};
 
 use midenc_hir::{
-    pass::{IRAfterPass, OperationPass, Pass, PassExecutionState},
+    pass::{pass::PassType, IRAfterPass, OperationPass, Pass, PassExecutionState},
     patterns::{self, FrozenRewritePatternSet, GreedyRewriteConfig, RewritePatternSet},
     Context, EntityMut, Operation, OperationName, Report, Spanned,
 };
@@ -60,6 +60,10 @@ impl Pass for Canonicalizer {
 
     fn name(&self) -> &'static str {
         "canonicalizer"
+    }
+
+    fn pass_type(&self) -> Option<PassType> {
+        Some(PassType::Canonicalizer)
     }
 
     fn argument(&self) -> &'static str {

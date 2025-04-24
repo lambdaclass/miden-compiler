@@ -7,7 +7,7 @@ use midenc_hir::{
     diagnostics::Severity,
     dialects::builtin,
     dominance::DominanceInfo,
-    pass::{IRAfterPass, Pass, PassExecutionState},
+    pass::{pass::PassType, IRAfterPass, Pass, PassExecutionState},
     Builder, EntityMut, Forward, Op, Operation, OperationName, OperationRef, RawWalk, Report,
     SmallVec, Spanned, Type, ValueRange, ValueRef, WalkResult,
 };
@@ -33,6 +33,10 @@ impl Pass for LiftControlFlowToSCF {
 
     fn name(&self) -> &'static str {
         "lift-control-flow"
+    }
+
+    fn pass_type(&self) -> Option<PassType> {
+        Some(PassType::LiftControlFlowToSCF)
     }
 
     fn argument(&self) -> &'static str {
