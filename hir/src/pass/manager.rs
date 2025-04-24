@@ -41,7 +41,6 @@ pub enum PassDisplayMode {
 #[derive(Default, Debug)]
 pub struct IRPrintingConfig {
     print_module_scope: bool,
-    print_after_only_on_change: bool,
     print_after_only_on_failure: bool,
     // NOTE: Taken from the Options struct
     print_ir_after_all: bool,
@@ -52,13 +51,12 @@ pub struct IRPrintingConfig {
 
 impl From<&Options> for IRPrintingConfig {
     fn from(options: &Options) -> Self {
-        let mut irprintconfig = IRPrintingConfig::default();
-
-        irprintconfig.print_ir_after_all = options.print_ir_after_all;
-        irprintconfig.print_ir_after_pass = options.print_ir_after_pass.clone();
-        irprintconfig.print_ir_after_modified = options.print_ir_after_modified;
-
-        irprintconfig
+        IRPrintingConfig {
+            print_ir_after_all: options.print_ir_after_all,
+            print_ir_after_pass: options.print_ir_after_pass.clone(),
+            print_ir_after_modified: options.print_ir_after_modified,
+            ..Default::default()
+        }
     }
 }
 
