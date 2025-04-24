@@ -153,28 +153,6 @@ impl Print {
     }
 }
 
-impl Pass for Print {
-    type Target = crate::Operation;
-
-    fn name(&self) -> &'static str {
-        "print"
-    }
-
-    fn can_schedule_on(&self, _name: &crate::OperationName) -> bool {
-        true
-    }
-
-    fn run_on_operation(
-        &mut self,
-        op: crate::EntityMut<'_, Self::Target>,
-        _state: &mut PassExecutionState,
-    ) -> Result<IRAfterPass, crate::Report> {
-        let op = op.into_entity_ref();
-        self.print_ir(op);
-        Ok(IRAfterPass::Unchanged)
-    }
-}
-
 impl PassInstrumentation for Print {
     fn run_after_pass(
         &mut self,
