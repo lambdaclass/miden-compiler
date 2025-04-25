@@ -183,6 +183,21 @@ impl Print {
 }
 
 impl PassInstrumentation for Print {
+    fn run_before_pipeline(
+        &mut self,
+        _name: Option<&OperationName>,
+        _parent_info: &PipelineParentInfo,
+        op: OperationRef,
+    ) {
+        if !self.only_when_modified {
+            return;
+        }
+
+        log::error!("IR before the pass pipeline");
+        let op = op.borrow();
+        self.print_ir(op);
+    }
+
     fn run_before_pass(&mut self, pass: &dyn OperationPass, op: &OperationRef) {
         if self.only_when_modified {
             return;
@@ -200,26 +215,10 @@ impl PassInstrumentation for Print {
         op: &OperationRef,
         changed: IRAfterPass,
     ) {
-        std::dbg!(changed);
         if self.should_print(pass, changed) {
             log::error!("After the {} pass", pass.name());
             let op = op.borrow();
             self.print_ir(op);
         }
-    }
-
-    fn run_before_pipeline(
-        &mut self,
-        _name: Option<&OperationName>,
-        _parent_info: &PipelineParentInfo,
-        op: OperationRef,
-    ) {
-        if !self.only_when_modified {
-            return;
-        }
-
-        log::error!("IR before the pass pipeline");
-        let op = op.borrow();
-        self.print_ir(op);
     }
 }
