@@ -57,6 +57,17 @@ enum OpFilter {
 }
 
 impl Print {
+    pub fn new(config: &IRPrintingConfig) -> Option<Self> {
+        if config.print_ir_after_all
+            || !config.print_ir_after_pass.is_empty()
+            || config.print_ir_after_modified
+        {
+            Some(Self::default())
+        } else {
+            None
+        }
+    }
+
     // /// Create a printer that prints any operation
     // pub fn any() -> Self {
     //     Self {
@@ -96,6 +107,7 @@ impl Print {
             self.pass_filter = Some(PassFilter::Certain(config.print_ir_after_pass));
         }
 
+        // QUESTION: What should if the user only specifies "print after modification" but hasn't specified pass?
         if config.print_ir_after_modified {
             self.only_when_modified = true;
         };

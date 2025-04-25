@@ -189,11 +189,14 @@ impl PassManager {
     }
 
     pub fn enable_ir_printing(&mut self, config: IRPrintingConfig) {
-        // NOTE: This, I think, is cleaner BUT means that a Print struct is always created and malloced, even if no printing configuration was passed.
-        let print = Print::default().with_all_symbols().with_pass_filter(config);
+        let print = Print::new(&config)
+            .map(|p| p.with_pass_filter(config))
+            .map(|p| p.with_all_symbols());
 
-        let print = Box::new(print);
-        self.add_instrumentation(print);
+        if let Some(print) = print {
+            let print = Box::new(print);
+            self.add_instrumentation(print);
+        }
     }
 
     pub fn enable_timing(&mut self, yes: bool) -> &mut Self {
