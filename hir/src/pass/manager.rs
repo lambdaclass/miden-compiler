@@ -188,7 +188,7 @@ impl PassManager {
         self
     }
 
-    pub fn enable_ir_printing(&mut self, config: IRPrintingConfig) {
+    pub fn enable_ir_printing(mut self, config: IRPrintingConfig) -> Self {
         let print = Print::new(&config)
             .map(|p| p.with_pass_filter(&config))
             .map(|p| p.with_symbol_filter(&config));
@@ -197,6 +197,7 @@ impl PassManager {
             let print = Box::new(print);
             self.add_instrumentation(print);
         }
+        self
     }
 
     pub fn enable_timing(&mut self, yes: bool) -> &mut Self {
