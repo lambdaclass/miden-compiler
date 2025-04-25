@@ -134,7 +134,6 @@ impl Pass for LiftControlFlowToSCF {
         });
 
         if result.was_interrupted() {
-            // TODO: Maybe Change into_result implementation
             return result.into_result().map(|_| IRAfterPass::Unchanged);
         }
 

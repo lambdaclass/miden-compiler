@@ -252,7 +252,6 @@ pub fn transform_spills(
         )?;
     }
 
-    // QUESTION: If the code has reached this point, then, in theory, it must've gotten changed. Right? Requires double check.
     Ok(IRAfterPass::Changed)
 }
 
