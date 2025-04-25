@@ -26,7 +26,7 @@ use crate::{
 #[derive(Default)]
 pub struct Print {
     filter: Option<OpFilter>,
-    pass_filter: Option<PassFilter>,
+    pass_filter: PassFilter,
     target: Option<compact_str::CompactString>,
     only_when_modified: bool,
 }
@@ -93,16 +93,11 @@ impl Print {
         self
     }
 
-    pub fn with_no_pass_filter(mut self) -> Self {
-        self.pass_filter = Some(PassFilter::All);
-        self
-    }
-
     pub fn with_pass_filter(mut self, config: &IRPrintingConfig) -> Self {
         if config.print_ir_after_all {
-            self.pass_filter = Some(PassFilter::All);
+            self.pass_filter = PassFilter::All;
         } else if !config.print_ir_after_pass.is_empty() {
-            self.pass_filter = Some(PassFilter::Certain(config.print_ir_after_pass.clone()));
+            self.pass_filter = PassFilter::Certain(config.print_ir_after_pass.clone());
         }
 
         // QUESTION: What should if the user only specifies "print after modification" but hasn't specified pass?
@@ -159,15 +154,14 @@ impl Print {
 
     fn pass_filter(&self, pass: &dyn OperationPass) -> bool {
         match &self.pass_filter {
-            Some(PassFilter::All) => true,
-            Some(PassFilter::Certain(passes)) => passes.iter().any(|p| {
+            PassFilter::All => true,
+            PassFilter::Certain(passes) => passes.iter().any(|p| {
                 if let Some(p_type) = pass.pass_type() {
                     *p == p_type
                 } else {
                     false
                 }
             }),
-            None => true,
         }
     }
 
