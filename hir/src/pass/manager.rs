@@ -190,8 +190,8 @@ impl PassManager {
 
     pub fn enable_ir_printing(&mut self, config: IRPrintingConfig) {
         let print = Print::new(&config)
-            .map(|p| p.with_pass_filter(config))
-            .map(|p| p.with_all_symbols());
+            .map(|p| p.with_pass_filter(&config))
+            .map(|p| p.with_symbol_filter(&config));
 
         if let Some(print) = print {
             let print = Box::new(print);

@@ -68,15 +68,6 @@ impl Print {
         }
     }
 
-    // /// Create a printer that prints any operation
-    // pub fn any() -> Self {
-    //     Self {
-    //         filter: OpFilter::All,
-    //         pass_filter: PassFilter::All,
-    //         target: None,
-    //         only_when_modified: false,
-    //     }
-    // }
     pub fn with_type_filter<T: crate::OpRegistration>(mut self) -> Self {
         let dialect = <T as crate::OpRegistration>::dialect_name();
         let op = <T as crate::OpRegistration>::name();
@@ -90,7 +81,14 @@ impl Print {
         self
     }
 
-    pub fn with_all_symbols(mut self) -> Self {
+    #[allow(unused_mut)]
+    pub fn with_symbol_filter(mut self, _config: &IRPrintingConfig) -> Self {
+        // NOTE: At the moment, symbol filtering is not processed by the CLI. However, were it to be
+        // added, it could be done inside this function
+        self.with_all_symbols()
+    }
+
+    fn with_all_symbols(mut self) -> Self {
         self.filter = Some(OpFilter::All);
         self
     }
@@ -100,11 +98,11 @@ impl Print {
         self
     }
 
-    pub fn with_pass_filter(mut self, config: IRPrintingConfig) -> Self {
+    pub fn with_pass_filter(mut self, config: &IRPrintingConfig) -> Self {
         if config.print_ir_after_all {
             self.pass_filter = Some(PassFilter::All);
         } else if !config.print_ir_after_pass.is_empty() {
-            self.pass_filter = Some(PassFilter::Certain(config.print_ir_after_pass));
+            self.pass_filter = Some(PassFilter::Certain(config.print_ir_after_pass.clone()));
         }
 
         // QUESTION: What should if the user only specifies "print after modification" but hasn't specified pass?
