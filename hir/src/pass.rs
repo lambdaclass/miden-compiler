@@ -122,7 +122,7 @@ impl Print {
         match self.filter {
             Some(OpFilter::All) => {
                 let target = self.target.as_deref().unwrap_or("printer");
-                log::error!(target: target, "{op}");
+                log::trace!(target: target, "{op}");
             }
             Some(OpFilter::Type {
                 dialect,
@@ -131,21 +131,21 @@ impl Print {
                 let name = op.name();
                 if name.dialect() == dialect && name.name() == op_name {
                     let target = self.target.as_deref().unwrap_or("printer");
-                    log::error!(target: target, "{op}");
+                    log::trace!(target: target, "{op}");
                 }
             }
             Some(OpFilter::Symbol(None)) => {
                 if let Some(sym) = op.as_symbol() {
                     let name = sym.name().as_str();
                     let target = self.target.as_deref().unwrap_or(name);
-                    log::error!(target: target, "{}", sym.as_symbol_operation());
+                    log::trace!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
             Some(OpFilter::Symbol(Some(filter))) => {
                 if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
                 {
                     let target = self.target.as_deref().unwrap_or(filter);
-                    log::error!(target: target, "{}", sym.as_symbol_operation());
+                    log::trace!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
             None => (),
@@ -187,7 +187,7 @@ impl PassInstrumentation for Print {
             return;
         }
 
-        log::error!("IR before the pass pipeline");
+        log::trace!("IR before the pass pipeline");
         let op = op.borrow();
         self.print_ir(op);
     }
@@ -197,7 +197,7 @@ impl PassInstrumentation for Print {
             return;
         }
         if self.pass_filter(pass) {
-            log::error!("Before the {} pass", pass.name());
+            log::trace!("Before the {} pass", pass.name());
             let op = op.borrow();
             self.print_ir(op);
         }
@@ -210,7 +210,7 @@ impl PassInstrumentation for Print {
         changed: IRAfterPass,
     ) {
         if self.should_print(pass, changed) {
-            log::error!("After the {} pass", pass.name());
+            log::trace!("After the {} pass", pass.name());
             let op = op.borrow();
             self.print_ir(op);
         }
