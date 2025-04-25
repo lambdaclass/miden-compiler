@@ -25,8 +25,8 @@ use crate::{
 /// A `Pass` which prints IR it is run on, based on provided configuration.
 #[derive(Default)]
 pub struct Print {
-    filter: OpFilter,
-    pass_filter: PassFilter,
+    filter: Option<OpFilter>,
+    pass_filter: Option<PassFilter>,
     target: Option<compact_str::CompactString>,
     only_when_modified: bool,
 }
@@ -57,50 +57,50 @@ enum OpFilter {
 }
 
 impl Print {
-    /// Create a printer that prints any operation
-    pub fn any() -> Self {
-        Self {
-            filter: OpFilter::All,
-            pass_filter: PassFilter::All,
-            target: None,
-            only_when_modified: false,
-        }
-    }
-
-    /// Create a printer that only prints operations of type `T`
-    pub fn only<T: crate::OpRegistration>() -> Self {
+    // /// Create a printer that prints any operation
+    // pub fn any() -> Self {
+    //     Self {
+    //         filter: OpFilter::All,
+    //         pass_filter: PassFilter::All,
+    //         target: None,
+    //         only_when_modified: false,
+    //     }
+    // }
+    pub fn with_type_filter<T: crate::OpRegistration>(mut self) -> Self {
         let dialect = <T as crate::OpRegistration>::dialect_name();
         let op = <T as crate::OpRegistration>::name();
-        Self {
-            filter: OpFilter::Type { dialect, op },
-            pass_filter: PassFilter::All,
-            target: None,
-            only_when_modified: false,
-        }
-    }
-
-    // pub fn from_config(config: IRPrintingConfig) {
-    //     if config.print
-    // }
-    /// Adds a PassFilter to Print. IR will only be printed before and after those passes are
-    /// executed.
-    pub fn with_pass_filter(mut self, passes: Vec<PassType>) -> Self {
-        self.pass_filter = PassFilter::Certain(passes);
+        self.filter = Some(OpFilter::Type { dialect, op });
         self
     }
 
-    pub fn with_only_print_when_modified(&mut self) {
-        self.only_when_modified = true;
+    /// Create a printer that only prints `Symbol` operations containing `name`
+    pub fn with_symbol_matching(mut self, name: &'static str) -> Self {
+        self.filter = Some(OpFilter::Symbol(Some(name)));
+        self
     }
 
-    /// Create a printer that only prints `Symbol` operations containing `name`
-    pub fn symbol_matching(name: &'static str) -> Self {
-        Self {
-            filter: OpFilter::Symbol(Some(name)),
-            pass_filter: PassFilter::All,
-            target: None,
-            only_when_modified: false,
+    pub fn with_all_symbols(mut self) -> Self {
+        self.filter = Some(OpFilter::All);
+        self
+    }
+
+    pub fn with_no_pass_filter(mut self) -> Self {
+        self.pass_filter = Some(PassFilter::All);
+        self
+    }
+
+    pub fn with_pass_filter(mut self, config: IRPrintingConfig) -> Self {
+        if config.print_ir_after_all {
+            self.pass_filter = Some(PassFilter::All);
+        } else if !config.print_ir_after_pass.is_empty() {
+            self.pass_filter = Some(PassFilter::Certain(config.print_ir_after_pass));
         }
+
+        if config.print_ir_after_modified {
+            self.only_when_modified = true;
+        };
+
+        self
     }
 
     /// Specify the `log` target to write the IR output to.
@@ -115,47 +115,49 @@ impl Print {
 
     fn print_ir(&self, op: EntityRef<'_, Operation>) {
         match self.filter {
-            OpFilter::All => {
+            Some(OpFilter::All) => {
                 let target = self.target.as_deref().unwrap_or("printer");
                 log::error!(target: target, "{op}");
             }
-            OpFilter::Type {
+            Some(OpFilter::Type {
                 dialect,
                 op: op_name,
-            } => {
+            }) => {
                 let name = op.name();
                 if name.dialect() == dialect && name.name() == op_name {
                     let target = self.target.as_deref().unwrap_or("printer");
                     log::error!(target: target, "{op}");
                 }
             }
-            OpFilter::Symbol(None) => {
+            Some(OpFilter::Symbol(None)) => {
                 if let Some(sym) = op.as_symbol() {
                     let name = sym.name().as_str();
                     let target = self.target.as_deref().unwrap_or(name);
                     log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
-            OpFilter::Symbol(Some(filter)) => {
+            Some(OpFilter::Symbol(Some(filter))) => {
                 if let Some(sym) = op.as_symbol().filter(|sym| sym.name().as_str().contains(filter))
                 {
                     let target = self.target.as_deref().unwrap_or(filter);
                     log::error!(target: target, "{}", sym.as_symbol_operation());
                 }
             }
+            None => (),
         }
     }
 
     fn pass_filter(&self, pass: &dyn OperationPass) -> bool {
         match &self.pass_filter {
-            PassFilter::All => true,
-            PassFilter::Certain(passes) => passes.iter().any(|p| {
+            Some(PassFilter::All) => true,
+            Some(PassFilter::Certain(passes)) => passes.iter().any(|p| {
                 if let Some(p_type) = pass.pass_type() {
                     *p == p_type
                 } else {
                     false
                 }
             }),
+            None => true,
         }
     }
 
@@ -163,10 +165,8 @@ impl Print {
         let pass_filter = self.pass_filter(pass);
 
         // Always print, unless "only_when_modified" has been set and there have not been changes.
-        let modification_filter = match (self.only_when_modified, ir_changed) {
-            (true, IRAfterPass::Unchanged) => false,
-            _ => true,
-        };
+        let modification_filter =
+            !matches!((self.only_when_modified, ir_changed), (true, IRAfterPass::Unchanged));
 
         pass_filter && modification_filter
     }
@@ -190,6 +190,7 @@ impl PassInstrumentation for Print {
         op: &OperationRef,
         changed: IRAfterPass,
     ) {
+        std::dbg!(changed);
         if self.should_print(pass, changed) {
             log::error!("After the {} pass", pass.name());
             let op = op.borrow();

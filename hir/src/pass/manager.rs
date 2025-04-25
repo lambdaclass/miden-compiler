@@ -33,13 +33,13 @@ pub enum PassDisplayMode {
 #[allow(unused)]
 #[derive(Default, Debug)]
 pub struct IRPrintingConfig {
-    print_module_scope: bool,
-    print_after_only_on_failure: bool,
+    pub print_module_scope: bool,
+    pub print_after_only_on_failure: bool,
     // NOTE: Taken from the Options struct
-    print_ir_after_all: bool,
-    print_ir_after_pass: Vec<PassType>,
-    print_ir_after_modified: bool,
-    flags: OpPrintingFlags,
+    pub print_ir_after_all: bool,
+    pub print_ir_after_pass: Vec<PassType>,
+    pub print_ir_after_modified: bool,
+    pub flags: OpPrintingFlags,
 }
 
 impl From<&Options> for IRPrintingConfig {
@@ -189,22 +189,11 @@ impl PassManager {
     }
 
     pub fn enable_ir_printing(&mut self, config: IRPrintingConfig) {
-        let print = if config.print_ir_after_all {
-            Some(Print::any())
-        } else if !config.print_ir_after_pass.is_empty() {
-            Some(Print::any().with_pass_filter(config.print_ir_after_pass))
-        } else {
-            None
-        };
+        // NOTE: This, I think, is cleaner BUT means that a Print struct is always created and malloced, even if no printing configuration was passed.
+        let print = Print::default().with_all_symbols().with_pass_filter(config);
 
-        //TODO: Refactor this
-        if let Some(mut print) = print {
-            if config.print_ir_after_modified {
-                print.with_only_print_when_modified();
-            }
-            let print = Box::new(print);
-            self.add_instrumentation(print);
-        }
+        let print = Box::new(print);
+        self.add_instrumentation(print);
     }
 
     pub fn enable_timing(&mut self, yes: bool) -> &mut Self {
