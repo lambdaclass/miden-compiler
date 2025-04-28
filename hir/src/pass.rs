@@ -12,7 +12,7 @@ pub use self::{
     analysis::{Analysis, AnalysisManager, OperationAnalysis, PreservedAnalyses},
     instrumentation::{PassInstrumentation, PassInstrumentor, PipelineParentInfo},
     manager::{IRPrintingConfig, Nesting, OpPassManager, PassDisplayMode, PassManager},
-    pass::{IRAfterPass, OperationPass, Pass, PassExecutionState, PassIdentifier},
+    pass::{OperationPass, Pass, PassExecutionState, PassIdentifier, PostPassStatus},
     registry::{PassInfo, PassPipelineInfo},
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
@@ -174,12 +174,12 @@ impl Print {
         }
     }
 
-    fn should_print(&self, pass: &dyn OperationPass, ir_changed: IRAfterPass) -> bool {
+    fn should_print(&self, pass: &dyn OperationPass, ir_changed: PostPassStatus) -> bool {
         let pass_filter = self.pass_filter(pass);
 
         // Always print, unless "only_when_modified" has been set and there have not been changes.
         let modification_filter =
-            !matches!((self.only_when_modified, ir_changed), (true, IRAfterPass::Unchanged));
+            !matches!((self.only_when_modified, ir_changed), (true, PostPassStatus::IRUnchanged));
 
         pass_filter && modification_filter
     }
@@ -216,7 +216,7 @@ impl PassInstrumentation for Print {
         &mut self,
         pass: &dyn OperationPass,
         op: &OperationRef,
-        changed: IRAfterPass,
+        changed: PostPassStatus,
     ) {
         if self.should_print(pass, changed) {
             log::trace!("After the {} pass", pass.name());

@@ -3,7 +3,7 @@ use alloc::rc::Rc;
 use midenc_hir::{
     adt::SmallDenseMap,
     dialects::builtin::{Function, FunctionRef, LocalVariable},
-    pass::{pass::PassIdentifier, IRAfterPass, Pass, PassExecutionState},
+    pass::{pass::PassIdentifier, Pass, PassExecutionState, PostPassStatus},
     BlockRef, BuilderExt, EntityMut, Op, OpBuilder, OperationName, OperationRef, Report, Rewriter,
     SourceSpan, Spanned, Symbol, ValueRef,
 };
@@ -35,14 +35,14 @@ impl Pass for TransformSpills {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<IRAfterPass, Report> {
+    ) -> Result<PostPassStatus, Report> {
         let function = op.into_entity_ref();
         log::debug!(target: "insert-spills", "computing and inserting spills for {}", function.as_operation());
 
         if function.is_declaration() {
             log::debug!(target: "insert-spills", "function has no body, no spills needed!");
             state.preserved_analyses_mut().preserve_all();
-            return Ok(IRAfterPass::Unchanged);
+            return Ok(PostPassStatus::IRUnchanged);
         }
         let mut analysis =
             state.analysis_manager().get_analysis_for::<SpillAnalysis, Function>()?;
@@ -50,7 +50,7 @@ impl Pass for TransformSpills {
         if !analysis.has_spills() {
             log::debug!(target: "insert-spills", "no spills needed!");
             state.preserved_analyses_mut().preserve_all();
-            return Ok(IRAfterPass::Unchanged);
+            return Ok(PostPassStatus::IRUnchanged);
         }
 
         // Take ownership of the spills analysis so that we can mutate the analysis state during

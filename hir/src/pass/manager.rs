@@ -9,7 +9,7 @@ use super::{
     PassInstrumentor, PipelineParentInfo, Statistic,
 };
 use crate::{
-    pass::{pass::PassIdentifier, IRAfterPass, Print},
+    pass::{pass::PassIdentifier, PostPassStatus, Print},
     traits::IsolatedFromAbove,
     Context, EntityMut, OpPrintingFlags, OpRegistration, Operation, OperationName, OperationRef,
     Report,
@@ -987,7 +987,7 @@ impl OpToOpPassAdaptor {
             let in_result = if let Ok(result) = result {
                 result
             } else {
-                IRAfterPass::Unchanged
+                PostPassStatus::IRUnchanged
             };
             if result.is_err() {
                 instrumentor.run_after_pass_failed(pass, &op);
@@ -1014,7 +1014,7 @@ impl OpToOpPassAdaptor {
         op: OperationRef,
         state: &mut PassExecutionState,
         verify: bool,
-    ) -> Result<IRAfterPass, Report> {
+    ) -> Result<PostPassStatus, Report> {
         let analysis_manager = state.analysis_manager();
         let instrumentor = analysis_manager.pass_instrumentor();
         let parent_info = PipelineParentInfo {
@@ -1049,7 +1049,7 @@ impl OpToOpPassAdaptor {
             }
         }
 
-        Ok(IRAfterPass::Unchanged)
+        Ok(PostPassStatus::IRUnchanged)
     }
 }
 
@@ -1090,7 +1090,7 @@ impl Pass for OpToOpPassAdaptor {
         &mut self,
         _op: EntityMut<'_, Operation>,
         _state: &mut PassExecutionState,
-    ) -> Result<IRAfterPass, Report> {
+    ) -> Result<PostPassStatus, Report> {
         unreachable!("unexpected call to `Pass::run_on_operation` for OpToOpPassAdaptor")
     }
 }

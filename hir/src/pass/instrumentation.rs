@@ -5,7 +5,7 @@ use compact_str::CompactString;
 use smallvec::SmallVec;
 
 use super::OperationPass;
-use crate::{pass::IRAfterPass, OperationName, OperationRef};
+use crate::{pass::PostPassStatus, OperationName, OperationRef};
 
 #[allow(unused_variables)]
 pub trait PassInstrumentation {
@@ -27,7 +27,7 @@ pub trait PassInstrumentation {
         &mut self,
         pass: &dyn OperationPass,
         op: &OperationRef,
-        changed: IRAfterPass,
+        changed: PostPassStatus,
     ) {
     }
     fn run_after_pass_failed(&mut self, pass: &dyn OperationPass, op: &OperationRef) {}
@@ -66,7 +66,7 @@ impl<P: ?Sized + PassInstrumentation> PassInstrumentation for Box<P> {
         &mut self,
         pass: &dyn OperationPass,
         op: &OperationRef,
-        changed: IRAfterPass,
+        changed: PostPassStatus,
     ) {
         (**self).run_after_pass(pass, op, changed);
     }
@@ -115,7 +115,7 @@ impl PassInstrumentor {
         &self,
         pass: &dyn OperationPass,
         op: &OperationRef,
-        changed: IRAfterPass,
+        changed: PostPassStatus,
     ) {
         self.instrument(|pi| pi.run_after_pass(pass, op, changed));
     }

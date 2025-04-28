@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, format, rc::Rc};
 
 use midenc_hir::{
-    pass::{pass::PassIdentifier, IRAfterPass, OperationPass, Pass, PassExecutionState},
+    pass::{pass::PassIdentifier, OperationPass, Pass, PassExecutionState, PostPassStatus},
     patterns::{self, FrozenRewritePatternSet, GreedyRewriteConfig, RewritePatternSet},
     Context, EntityMut, Operation, OperationName, Report, Spanned,
 };
@@ -97,10 +97,10 @@ impl Pass for Canonicalizer {
         &mut self,
         op: EntityMut<'_, Self::Target>,
         state: &mut PassExecutionState,
-    ) -> Result<IRAfterPass, Report> {
+    ) -> Result<PostPassStatus, Report> {
         let Some(rewrites) = self.rewrites.as_ref() else {
             log::debug!("skipping canonicalization as there are no rewrite patterns to apply");
-            return Ok(IRAfterPass::Unchanged);
+            return Ok(PostPassStatus::IRUnchanged);
         };
         let op = {
             let ptr = op.as_operation_ref();
