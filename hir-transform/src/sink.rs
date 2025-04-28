@@ -4,7 +4,7 @@ use midenc_hir::{
     adt::SmallDenseMap,
     dominance::DominanceInfo,
     matchers::{self, Matcher},
-    pass::{pass::PassIdentifier, Pass, PassExecutionState, PostPassStatus},
+    pass::{Pass, PassExecutionState, PassIdentifier, PostPassStatus},
     traits::{ConstantLike, Terminator},
     Backward, Builder, EntityMut, Forward, FxHashSet, OpBuilder, Operation, OperationName,
     OperationRef, ProgramPoint, RawWalk, Region, RegionBranchOpInterface,

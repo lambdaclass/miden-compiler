@@ -7,7 +7,7 @@ use midenc_hir::{
     diagnostics::Severity,
     dialects::builtin,
     dominance::DominanceInfo,
-    pass::{pass::PassIdentifier, Pass, PassExecutionState, PostPassStatus},
+    pass::{Pass, PassExecutionState, PassIdentifier, PostPassStatus},
     Builder, EntityMut, Forward, Op, Operation, OperationName, OperationRef, RawWalk, Report,
     SmallVec, Spanned, Type, ValueRange, ValueRef, WalkResult,
 };

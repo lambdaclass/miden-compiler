@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, format, rc::Rc};
 
 use midenc_hir::{
-    pass::{pass::PassIdentifier, OperationPass, Pass, PassExecutionState, PostPassStatus},
+    pass::{OperationPass, Pass, PassExecutionState, PassIdentifier, PostPassStatus},
     patterns::{self, FrozenRewritePatternSet, GreedyRewriteConfig, RewritePatternSet},
     Context, EntityMut, Operation, OperationName, Report, Spanned,
 };

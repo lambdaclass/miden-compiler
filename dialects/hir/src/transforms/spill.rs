@@ -3,7 +3,7 @@ use alloc::rc::Rc;
 use midenc_hir::{
     adt::SmallDenseMap,
     dialects::builtin::{Function, FunctionRef, LocalVariable},
-    pass::{pass::PassIdentifier, Pass, PassExecutionState, PostPassStatus},
+    pass::{Pass, PassExecutionState, PassIdentifier, PostPassStatus},
     BlockRef, BuilderExt, EntityMut, Op, OpBuilder, OperationName, OperationRef, Report, Rewriter,
     SourceSpan, Spanned, Symbol, ValueRef,
 };

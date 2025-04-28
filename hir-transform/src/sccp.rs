@@ -1,5 +1,5 @@
 use midenc_hir::{
-    pass::{pass::PassIdentifier, Pass, PassExecutionState, PostPassStatus},
+    pass::{Pass, PassExecutionState, PassIdentifier, PostPassStatus},
     patterns::NoopRewriterListener,
     BlockRef, Builder, EntityMut, OpBuilder, Operation, OperationFolder, OperationName, RegionList,
     Report, SmallVec, ValueRef,
