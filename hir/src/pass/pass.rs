@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, rc::Rc};
+use alloc::{boxed::Box, format, rc::Rc};
 use core::{any::Any, fmt};
 
 use super::*;
@@ -154,18 +154,20 @@ pub enum PassIdentifier {
     TransformSpills,
 }
 
-impl From<&String> for PassIdentifier {
-    fn from(pass_name: &String) -> Self {
+impl TryFrom<&String> for PassIdentifier {
+    type Error = Report;
+
+    fn try_from(pass_name: &String) -> Result<Self, Self::Error> {
         match pass_name.as_str() {
-            "canonicalizer" => PassIdentifier::Canonicalizer,
-            "control-flow-sink" => PassIdentifier::ControlFlowSink,
-            "lift-control-flow" => PassIdentifier::LiftControlFlowToSCF,
-            "sink-operand-defs" => PassIdentifier::SinkOperandDefs,
+            "canonicalizer" => Ok(PassIdentifier::Canonicalizer),
+            "control-flow-sink" => Ok(PassIdentifier::ControlFlowSink),
+            "lift-control-flow" => Ok(PassIdentifier::LiftControlFlowToSCF),
+            "sink-operand-defs" => Ok(PassIdentifier::SinkOperandDefs),
             "sparse-conditional-constant-propagation" => {
-                PassIdentifier::SparseConditionalConstantPropagation
+                Ok(PassIdentifier::SparseConditionalConstantPropagation)
             }
-            "transform-spills" => PassIdentifier::TransformSpills,
-            _ => panic!("ERROR: '{pass_name}' unrecognized pass."),
+            "transform-spills" => Ok(PassIdentifier::TransformSpills),
+            _ => Err(Report::msg(format!("'{pass_name}' unrecognized pass."))),
         }
     }
 }

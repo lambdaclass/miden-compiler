@@ -22,7 +22,7 @@ impl Stage for ApplyRewritesStage {
     }
 
     fn run(&mut self, input: Self::Input, context: Rc<Context>) -> CompilerResult<Self::Output> {
-        let ir_print_config: IRPrintingConfig = (&context.as_ref().session().options).into();
+        let ir_print_config: IRPrintingConfig = (&context.as_ref().session().options).try_into()?;
         log::debug!(target: "driver", "applying rewrite passes");
         // TODO(pauls): Set up pass registration for new pass infra
         /*

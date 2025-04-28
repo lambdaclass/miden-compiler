@@ -42,16 +42,21 @@ pub struct IRPrintingConfig {
     pub flags: OpPrintingFlags,
 }
 
-impl From<&Options> for IRPrintingConfig {
-    fn from(options: &Options) -> Self {
-        let pass_filters: Vec<PassIdentifier> =
-            options.print_ir_after_pass.iter().map(|a| a.into()).collect();
-        IRPrintingConfig {
+impl TryFrom<&Options> for IRPrintingConfig {
+    type Error = Report;
+
+    fn try_from(options: &Options) -> Result<Self, Self::Error> {
+        let pass_filters: Vec<PassIdentifier> = options
+            .print_ir_after_pass
+            .iter()
+            .map(|a| a.try_into())
+            .collect::<Result<Vec<PassIdentifier>, Report>>()?;
+        Ok(IRPrintingConfig {
             print_ir_after_all: options.print_ir_after_all,
             print_ir_after_pass: pass_filters,
             print_ir_after_modified: options.print_ir_after_modified,
             ..Default::default()
-        }
+        })
     }
 }
 
