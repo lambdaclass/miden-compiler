@@ -39,6 +39,7 @@ enum PassFilter {
     Certain(Vec<PassIdentifier>),
 }
 
+#[allow(dead_code)]
 #[derive(Default, Debug)]
 enum OpFilter {
     /// Print all operations
@@ -56,14 +57,15 @@ enum OpFilter {
 
 impl Print {
     pub fn new(config: &IRPrintingConfig) -> Option<Self> {
-        if config.print_ir_after_all
+        let print = if config.print_ir_after_all
             || !config.print_ir_after_pass.is_empty()
             || config.print_ir_after_modified
         {
             Some(Self::default())
         } else {
             None
-        }
+        };
+        print.map(|p| p.with_pass_filter(config)).map(|p| p.with_symbol_filter(config))
     }
 
     pub fn with_type_filter<T: crate::OpRegistration>(mut self) -> Self {
@@ -73,14 +75,15 @@ impl Print {
         self
     }
 
+    #[allow(dead_code)]
     /// Create a printer that only prints `Symbol` operations containing `name`
-    pub fn with_symbol_matching(mut self, name: &'static str) -> Self {
+    fn with_symbol_matching(mut self, name: &'static str) -> Self {
         self.filter = Some(OpFilter::Symbol(Some(name)));
         self
     }
 
     #[allow(unused_mut)]
-    pub fn with_symbol_filter(mut self, _config: &IRPrintingConfig) -> Self {
+    fn with_symbol_filter(mut self, _config: &IRPrintingConfig) -> Self {
         // NOTE: At the moment, symbol filtering is not processed by the CLI. However, were it to be
         // added, it could be done inside this function
         self.with_all_symbols()
@@ -91,7 +94,7 @@ impl Print {
         self
     }
 
-    pub fn with_pass_filter(mut self, config: &IRPrintingConfig) -> Self {
+    fn with_pass_filter(mut self, config: &IRPrintingConfig) -> Self {
         let is_ir_filter_set = if config.print_ir_after_all {
             self.pass_filter = Some(PassFilter::All);
             true
