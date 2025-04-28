@@ -1,5 +1,5 @@
 use midenc_hir::{
-    pass::{pass::PassType, IRAfterPass, Pass, PassExecutionState},
+    pass::{pass::PassIdentifier, IRAfterPass, Pass, PassExecutionState},
     patterns::NoopRewriterListener,
     BlockRef, Builder, EntityMut, OpBuilder, Operation, OperationFolder, OperationName, RegionList,
     Report, SmallVec, ValueRef,
@@ -26,8 +26,8 @@ impl Pass for SparseConditionalConstantPropagation {
         "sparse-conditional-constant-propagation"
     }
 
-    fn pass_type(&self) -> Option<PassType> {
-        Some(PassType::SparseConditionalConstantPropagation)
+    fn pass_id(&self) -> Option<PassIdentifier> {
+        Some(PassIdentifier::SparseConditionalConstantPropagation)
     }
 
     fn argument(&self) -> &'static str {

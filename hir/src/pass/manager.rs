@@ -9,7 +9,7 @@ use super::{
     PassInstrumentor, PipelineParentInfo, Statistic,
 };
 use crate::{
-    pass::{pass::PassType, IRAfterPass, Print},
+    pass::{pass::PassIdentifier, IRAfterPass, Print},
     traits::IsolatedFromAbove,
     Context, EntityMut, OpPrintingFlags, OpRegistration, Operation, OperationName, OperationRef,
     Report,
@@ -37,14 +37,14 @@ pub struct IRPrintingConfig {
     pub print_after_only_on_failure: bool,
     // NOTE: Taken from the Options struct
     pub print_ir_after_all: bool,
-    pub print_ir_after_pass: Vec<PassType>,
+    pub print_ir_after_pass: Vec<PassIdentifier>,
     pub print_ir_after_modified: bool,
     pub flags: OpPrintingFlags,
 }
 
 impl From<&Options> for IRPrintingConfig {
     fn from(options: &Options) -> Self {
-        let pass_filters: Vec<PassType> =
+        let pass_filters: Vec<PassIdentifier> =
             options.print_ir_after_pass.iter().map(|a| a.into()).collect();
         IRPrintingConfig {
             print_ir_after_all: options.print_ir_after_all,
@@ -735,7 +735,7 @@ impl OpToOpPassAdaptor {
     }
 
     #[allow(dead_code)]
-    fn pass_type(&self) -> Option<PassType> {
+    fn pass_id(&self) -> Option<PassIdentifier> {
         None
     }
 
@@ -1060,7 +1060,7 @@ impl Pass for OpToOpPassAdaptor {
         crate::interner::Symbol::intern(self.name()).as_str()
     }
 
-    fn pass_type(&self) -> Option<PassType> {
+    fn pass_id(&self) -> Option<PassIdentifier> {
         None
     }
 

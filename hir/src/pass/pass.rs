@@ -16,7 +16,7 @@ pub trait OperationPass {
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
     fn name(&self) -> &'static str;
 
-    fn pass_type(&self) -> Option<PassType>;
+    fn pass_id(&self) -> Option<PassIdentifier>;
 
     fn argument(&self) -> &'static str {
         // NOTE: Could we compute an argument string from the type name?
@@ -64,8 +64,8 @@ where
         <P as Pass>::as_any(self)
     }
 
-    fn pass_type(&self) -> Option<PassType> {
-        <P as Pass>::pass_type(self)
+    fn pass_id(&self) -> Option<PassIdentifier> {
+        <P as Pass>::pass_id(self)
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
@@ -144,7 +144,7 @@ where
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum PassType {
+pub enum PassIdentifier {
     Canonicalizer,
     ControlFlowSink,
     LiftControlFlowToSCF,
@@ -154,17 +154,17 @@ pub enum PassType {
     TransformSpills,
 }
 
-impl From<&String> for PassType {
+impl From<&String> for PassIdentifier {
     fn from(pass_name: &String) -> Self {
         match pass_name.as_str() {
-            "canonicalizer" => PassType::Canonicalizer,
-            "control-flow-sink" => PassType::ControlFlowSink,
-            "lift-control-flow" => PassType::LiftControlFlowToSCF,
-            "sink-operand-defs" => PassType::SinkOperandDefs,
+            "canonicalizer" => PassIdentifier::Canonicalizer,
+            "control-flow-sink" => PassIdentifier::ControlFlowSink,
+            "lift-control-flow" => PassIdentifier::LiftControlFlowToSCF,
+            "sink-operand-defs" => PassIdentifier::SinkOperandDefs,
             "sparse-conditional-constant-propagation" => {
-                PassType::SparseConditionalConstantPropagation
+                PassIdentifier::SparseConditionalConstantPropagation
             }
-            "transform-spills" => PassType::TransformSpills,
+            "transform-spills" => PassIdentifier::TransformSpills,
             _ => panic!("ERROR: '{pass_name}' unrecognized pass."),
         }
     }
@@ -295,7 +295,7 @@ pub trait Pass: Sized + Any {
         state.run_pipeline(pipeline, op)
     }
 
-    fn pass_type(&self) -> Option<PassType>;
+    fn pass_id(&self) -> Option<PassIdentifier>;
 }
 
 impl<P> Pass for Box<P>
@@ -322,8 +322,8 @@ where
         (**self).name()
     }
 
-    fn pass_type(&self) -> Option<PassType> {
-        (**self).pass_type()
+    fn pass_id(&self) -> Option<PassIdentifier> {
+        (**self).pass_id()
     }
 
     #[inline]

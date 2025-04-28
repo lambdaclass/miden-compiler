@@ -12,7 +12,7 @@ pub use self::{
     analysis::{Analysis, AnalysisManager, OperationAnalysis, PreservedAnalyses},
     instrumentation::{PassInstrumentation, PassInstrumentor, PipelineParentInfo},
     manager::{IRPrintingConfig, Nesting, OpPassManager, PassDisplayMode, PassManager},
-    pass::{IRAfterPass, OperationPass, Pass, PassExecutionState, PassType},
+    pass::{IRAfterPass, OperationPass, Pass, PassExecutionState, PassIdentifier},
     registry::{PassInfo, PassPipelineInfo},
     specialization::PassTarget,
     statistics::{PassStatistic, Statistic, StatisticValue},
@@ -37,7 +37,7 @@ enum PassFilter {
     /// Print IR regardless of which pass is executed.
     All,
     /// Only print IR if the pass's name is present in the vector.
-    Certain(Vec<PassType>),
+    Certain(Vec<PassIdentifier>),
 }
 
 #[derive(Default, Debug)]
@@ -164,7 +164,7 @@ impl Print {
         match &self.pass_filter {
             Some(PassFilter::All) => true,
             Some(PassFilter::Certain(passes)) => passes.iter().any(|p| {
-                if let Some(p_type) = pass.pass_type() {
+                if let Some(p_type) = pass.pass_id() {
                     *p == p_type
                 } else {
                     false
