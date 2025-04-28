@@ -734,11 +734,6 @@ impl OpToOpPassAdaptor {
         Self { pms: smallvec![pm] }
     }
 
-    #[allow(dead_code)]
-    fn pass_id(&self) -> Option<PassIdentifier> {
-        None
-    }
-
     pub fn name(&self) -> CompactString {
         use core::fmt::Write;
 
