@@ -176,7 +176,6 @@ pub enum PostPassStatus {
     IRChanged,
 }
 
-// NOTE: I am not sure if using a From impl
 impl From<bool> for PostPassStatus {
     fn from(ir_was_changed: bool) -> Self {
         match ir_was_changed {
