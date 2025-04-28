@@ -984,15 +984,11 @@ impl OpToOpPassAdaptor {
         }
 
         if let Some(instrumentor) = pi.as_deref() {
-            let in_result = if let Ok(result) = result {
-                result
-            } else {
-                PostPassStatus::IRUnchanged
-            };
             if result.is_err() {
                 instrumentor.run_after_pass_failed(pass, &op);
             } else {
-                instrumentor.run_after_pass(pass, &op, in_result);
+                let in_result = result.as_ref().unwrap_or(&PostPassStatus::IRUnchanged);
+                instrumentor.run_after_pass(pass, &op, *in_result);
             }
         }
 
