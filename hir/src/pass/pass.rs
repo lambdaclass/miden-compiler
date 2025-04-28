@@ -180,9 +180,10 @@ pub enum PostPassStatus {
 
 impl From<bool> for PostPassStatus {
     fn from(ir_was_changed: bool) -> Self {
-        match ir_was_changed {
-            true => PostPassStatus::IRChanged,
-            false => PostPassStatus::IRUnchanged,
+        if ir_was_changed {
+            PostPassStatus::IRChanged
+        } else {
+            PostPassStatus::IRUnchanged
         }
     }
 }
