@@ -94,15 +94,24 @@ impl Print {
     }
 
     pub fn with_pass_filter(mut self, config: &IRPrintingConfig) -> Self {
-        if config.print_ir_after_all {
+        let is_ir_filter_set = if config.print_ir_after_all {
             self.pass_filter = PassFilter::All;
+            true
         } else if !config.print_ir_after_pass.is_empty() {
             self.pass_filter = PassFilter::Certain(config.print_ir_after_pass.clone());
-        }
+            true
+        } else {
+            false
+        };
 
-        // QUESTION: What should if the user only specifies "print after modification" but hasn't specified pass?
         if config.print_ir_after_modified {
             self.only_when_modified = true;
+            // NOTE: If the user specified the "print after modification" flag, but didn't specify
+            // any IR pass filter flag; then we assume that the desired behavior is to set the "all
+            // pass" filter.
+            if !is_ir_filter_set {
+                self.pass_filter = PassFilter::All;
+            }
         };
 
         self

@@ -339,7 +339,8 @@ pub struct UnstableOptions {
         )
     )]
     pub print_ir_after_pass: Vec<String>,
-    /// Only print the IR if the pass modified the IR structure.
+    /// Only print the IR if the pass modified the IR structure. If this flag is set, and no IR
+    /// filter flag is; then the default behavior is to print the IR after every pass.
     #[cfg_attr(
         feature = "std",
         arg(long, default_value_t = false, help_heading = "Passes")
