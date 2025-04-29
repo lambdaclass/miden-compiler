@@ -25,18 +25,18 @@ use crate::{
 #[derive(Default)]
 pub struct Print {
     filter: Option<OpFilter>,
-    pass_filter: Option<PassFilter>,
+    pass_filter: Option<SelectedPasses>,
     target: Option<compact_str::CompactString>,
     only_when_modified: bool,
 }
 
-/// Filter for the different passes.
+/// Select passes for IR printing.
 #[derive(Debug)]
-enum PassFilter {
-    /// Print IR regardless of which pass is executed.
+enum SelectedPasses {
+    /// Select all passes for IR Printing.
     All,
-    /// Only print IR if the pass's name is present in the vector.
-    Certain(Vec<PassIdentifier>),
+    /// Just select a subset of passes for IR printing.
+    Just(Vec<PassIdentifier>),
 }
 
 #[allow(dead_code)]
@@ -96,10 +96,10 @@ impl Print {
 
     fn with_pass_filter(mut self, config: &IRPrintingConfig) -> Self {
         let is_ir_filter_set = if config.print_ir_after_all {
-            self.pass_filter = Some(PassFilter::All);
+            self.pass_filter = Some(SelectedPasses::All);
             true
         } else if !config.print_ir_after_pass.is_empty() {
-            self.pass_filter = Some(PassFilter::Certain(config.print_ir_after_pass.clone()));
+            self.pass_filter = Some(SelectedPasses::Just(config.print_ir_after_pass.clone()));
             true
         } else {
             false
@@ -111,7 +111,7 @@ impl Print {
             // any IR pass filter flag; then we assume that the desired behavior is to set the "all
             // pass" filter.
             if !is_ir_filter_set {
-                self.pass_filter = Some(PassFilter::All);
+                self.pass_filter = Some(SelectedPasses::All);
             }
         };
 
@@ -164,8 +164,8 @@ impl Print {
 
     fn pass_filter(&self, pass: &dyn OperationPass) -> bool {
         match &self.pass_filter {
-            Some(PassFilter::All) => true,
-            Some(PassFilter::Certain(passes)) => passes.iter().any(|p| {
+            Some(SelectedPasses::All) => true,
+            Some(SelectedPasses::Just(passes)) => passes.iter().any(|p| {
                 if let Some(p_type) = pass.pass_id() {
                     *p == p_type
                 } else {
