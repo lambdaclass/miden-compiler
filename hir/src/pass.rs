@@ -24,8 +24,8 @@ use crate::{
 /// A `Pass` which prints IR it is run on, based on provided configuration.
 #[derive(Default)]
 pub struct Print {
-    filter: Option<OpFilter>,
-    pass_filter: Option<SelectedPasses>,
+    op_filter: Option<OpFilter>,
+    selected_passes: Option<SelectedPasses>,
     target: Option<compact_str::CompactString>,
     only_when_modified: bool,
 }
@@ -71,14 +71,14 @@ impl Print {
     pub fn with_type_filter<T: crate::OpRegistration>(mut self) -> Self {
         let dialect = <T as crate::OpRegistration>::dialect_name();
         let op = <T as crate::OpRegistration>::name();
-        self.filter = Some(OpFilter::Type { dialect, op });
+        self.op_filter = Some(OpFilter::Type { dialect, op });
         self
     }
 
     #[allow(dead_code)]
     /// Create a printer that only prints `Symbol` operations containing `name`
     fn with_symbol_matching(mut self, name: &'static str) -> Self {
-        self.filter = Some(OpFilter::Symbol(Some(name)));
+        self.op_filter = Some(OpFilter::Symbol(Some(name)));
         self
     }
 
@@ -90,16 +90,16 @@ impl Print {
     }
 
     fn with_all_symbols(mut self) -> Self {
-        self.filter = Some(OpFilter::All);
+        self.op_filter = Some(OpFilter::All);
         self
     }
 
     fn with_pass_filter(mut self, config: &IRPrintingConfig) -> Self {
         let is_ir_filter_set = if config.print_ir_after_all {
-            self.pass_filter = Some(SelectedPasses::All);
+            self.selected_passes = Some(SelectedPasses::All);
             true
         } else if !config.print_ir_after_pass.is_empty() {
-            self.pass_filter = Some(SelectedPasses::Just(config.print_ir_after_pass.clone()));
+            self.selected_passes = Some(SelectedPasses::Just(config.print_ir_after_pass.clone()));
             true
         } else {
             false
@@ -111,7 +111,7 @@ impl Print {
             // any IR pass filter flag; then we assume that the desired behavior is to set the "all
             // pass" filter.
             if !is_ir_filter_set {
-                self.pass_filter = Some(SelectedPasses::All);
+                self.selected_passes = Some(SelectedPasses::All);
             }
         };
 
@@ -129,7 +129,7 @@ impl Print {
     }
 
     fn print_ir(&self, op: EntityRef<'_, Operation>) {
-        match self.filter {
+        match self.op_filter {
             Some(OpFilter::All) => {
                 let target = self.target.as_deref().unwrap_or("printer");
                 log::trace!(target: target, "{op}");
@@ -163,7 +163,7 @@ impl Print {
     }
 
     fn pass_filter(&self, pass: &dyn OperationPass) -> bool {
-        match &self.pass_filter {
+        match &self.selected_passes {
             Some(SelectedPasses::All) => true,
             Some(SelectedPasses::Just(passes)) => passes.iter().any(|p| {
                 if let Some(p_type) = pass.pass_id() {
