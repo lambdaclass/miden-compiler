@@ -21,7 +21,11 @@ use crate::{
     EntityRef, Operation, OperationName, OperationRef,
 };
 
-/// A `Pass` which prints IR it is run on, based on provided configuration.
+/// Struct that handles IR printing, based on provided configuration.
+/// It is configured via the following CLI flags:
+/// -Z print-ir-after-all: Enable IR printing for every pass.
+/// -Z print-ir-after-pass: Enable IR printing only for some passes.
+/// -Z print-ir-after-modified.: Only print the IR if it has been been modified.
 #[derive(Default)]
 pub struct Print {
     op_filter: Option<OpFilter>,
