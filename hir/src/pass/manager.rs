@@ -51,6 +51,13 @@ impl TryFrom<&Options> for IRPrintingConfig {
             .iter()
             .map(|a| a.try_into())
             .collect::<Result<Vec<PassIdentifier>, Report>>()?;
+        if options.print_ir_after_all && !pass_filters.is_empty() {
+            return Err(Report::msg(
+                "Flags `print_ir_after_all` and `print_ir_after_pass` are mutually exclusive. \
+                 Please select only one."
+                    .to_string(),
+            ));
+        };
         Ok(IRPrintingConfig {
             print_ir_after_all: options.print_ir_after_all,
             print_ir_after_pass: pass_filters,
