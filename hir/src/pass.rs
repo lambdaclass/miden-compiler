@@ -21,11 +21,30 @@ use crate::{
     EntityRef, Operation, OperationName, OperationRef,
 };
 
-/// Struct that handles IR printing, based on provided configuration.
-/// It is configured via the following CLI flags:
-/// -Z print-ir-after-all: Enable IR printing for every pass.
-/// -Z print-ir-after-pass: Enable IR printing only for some passes.
-/// -Z print-ir-after-modified.: Only print the IR if it has been been modified.
+/// Struct that handles IR printing, based on the IRPRintingConfig passed during creation. Currently,
+/// this struct is managed by the PassManager's PassInstrumentor, which calls the Print struct via
+/// its PassInstrumentation trait implementation.
+///
+///Print currently implements the following PassInstrumentation functions:
+/// - run_before_pipeline: This gets called before the entire pass pipeline, but it will only
+///   display output if the "only_when_modified" option is set to true. This is done to showcase the
+///   IR before any pass gets applied.
+/// - run_before_pass: This is called before each pass. This function is used to display the IR
+///   right before a specific Pass gets applied. If "only_when_modified" is set to true, this
+///   function will not display output.
+/// - run_after_pass: This is called after each pass. This function is used to display the
+///   modifications done to the IR by a specific Pass.
+///
+/// NOTE: "only_when_modified" disables "run_before_pass" because it prints the IR before the pass
+/// is run, so there is no opportunity to check if the pass will actually modify the IR (since this
+/// is done later in the pipeline). So, in order to display the changes, "run_before_pipeline" is
+/// enabled. This has the effect of showing the IR before any passes, and then showing the IR only
+/// when it gets modified.  the IR twice.  All those functions call the [Print::print_ir] function,
+/// which handles IR printing based on Print's configuration.
+///
+/// It is important to note that the [Print::print_ir] function is only calling the Display
+/// implementation of the specified operation. This means, that the format in which the Operation is
+/// displayed is handled by each Operation.
 #[derive(Default)]
 pub struct Print {
     op_filter: Option<OpFilter>,
