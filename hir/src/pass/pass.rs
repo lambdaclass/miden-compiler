@@ -147,8 +147,6 @@ where
 pub enum PassIdentifier {
     Canonicalizer,
     ControlFlowSink,
-    // NOTE: Not yet enabled.
-    // InstructionScheduler,
     LiftControlFlowToSCF,
     OpToOpPassAdaptor,
     SinkOperandDefs,
