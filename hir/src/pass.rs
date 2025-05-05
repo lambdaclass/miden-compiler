@@ -47,16 +47,18 @@ use crate::{
 /// displayed is handled by each Operation.
 #[derive(Default)]
 pub struct Print {
-    op_filter: Option<OpFilter>,
     selected_passes: Option<SelectedPasses>,
-    target: Option<compact_str::CompactString>,
+
     only_when_modified: bool,
+    op_filter: Option<OpFilter>,
+
+    target: Option<compact_str::CompactString>,
 }
 
-/// Select passes for IR printing.
+/// Which passes are enabled for IR printing.
 #[derive(Debug)]
 enum SelectedPasses {
-    /// Select all passes for IR Printing.
+    /// Enable all passes for IR Printing.
     All,
     /// Just select a subset of passes for IR printing.
     Just(Vec<PassIdentifier>),
