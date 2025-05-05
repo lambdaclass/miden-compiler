@@ -21,30 +21,23 @@ use crate::{
     EntityRef, Operation, OperationName, OperationRef,
 };
 
-/// Struct that handles IR printing, based on the IRPRintingConfig passed during creation. Currently,
-/// this struct is managed by the PassManager's PassInstrumentor, which calls the Print struct via
-/// its PassInstrumentation trait implementation.
+/// Handles IR printing, based on the [`IRPrintingConfig`] passed in
+/// [Print::new]. Currently, this struct is managed by the [`PassManager`]'s [`PassInstrumentor`],
+/// which calls the Print struct via its [`PassInstrumentation`] trait implementation.
 ///
-///Print currently implements the following PassInstrumentation functions:
-/// - run_before_pipeline: This gets called before the entire pass pipeline, but it will only
-///   display output if the "only_when_modified" option is set to true. This is done to showcase the
-///   IR before any pass gets applied.
-/// - run_before_pass: This is called before each pass. This function is used to display the IR
-///   right before a specific Pass gets applied. If "only_when_modified" is set to true, this
-///   function will not display output.
-/// - run_after_pass: This is called after each pass. This function is used to display the
-///   modifications done to the IR by a specific Pass.
+/// The configuration passed by [`IRPrintingConfig`] controls *when* the IR gets displayed, rather
+/// than *how*. The display format itself depends on the `Display` implementation done by each
+/// [`Operation`].
 ///
-/// NOTE: "only_when_modified" disables "run_before_pass" because it prints the IR before the pass
-/// is run, so there is no opportunity to check if the pass will actually modify the IR (since this
-/// is done later in the pipeline). So, in order to display the changes, "run_before_pipeline" is
-/// enabled. This has the effect of showing the IR before any passes, and then showing the IR only
-/// when it gets modified.  the IR twice.  All those functions call the [Print::print_ir] function,
-/// which handles IR printing based on Print's configuration.
+/// [`Print::selected_passes`] controls which passes are selected to be printable. This means that
+/// those selected passes will run all the configured filters; which will determine whether
+/// the pass displays the IR or not. The available options are [`SelectedPasses::All`] to enable all
+/// the passes and [`SelectedPasses::Just`] to enable a select set of passes.
 ///
-/// It is important to note that the [Print::print_ir] function is only calling the Display
-/// implementation of the specified operation. This means, that the format in which the Operation is
-/// displayed is handled by each Operation.
+/// The filters that run on the selected passes are:
+/// - [`Print::only_when_modified`] will only print the IR if said pass modified the IR.
+///
+/// - [`Print::op_filter`] will only display a specific subset of operations.
 #[derive(Default)]
 pub struct Print {
     selected_passes: Option<SelectedPasses>,
