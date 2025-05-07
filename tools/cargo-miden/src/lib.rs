@@ -62,6 +62,31 @@ enum Command {
     New(NewCommand),
 }
 
+fn detect_flags<I, T>(args: I) -> Option<Vec<String>>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<String> + Clone,
+{
+    let iter = args.into_iter().map(Into::into).skip_while(|arg| arg != "--");
+    let mut flags = Vec::new();
+    for item in iter {
+        if item == "--" {
+            continue;
+        } else if !item.starts_with("-") {
+            break;
+        } else if !item.starts_with("--") {
+            break;
+        };
+        flags.push(item);
+    }
+
+    if !flags.is_empty() {
+        Some(flags)
+    } else {
+        None
+    }
+}
+
 fn detect_subcommand<I, T>(args: I) -> Option<String>
 where
     I: IntoIterator<Item = T>,
@@ -106,6 +131,7 @@ where
     // The first argument is the cargo-miden binary path
     let args = args.skip_while(|arg| arg != "miden").collect::<Vec<_>>();
     let subcommand = detect_subcommand(args.clone());
+    let flags = detect_flags(args.clone());
 
     let outputs = match subcommand.as_deref() {
         // Check for built-in command or no command (shows help)
@@ -261,8 +287,9 @@ where
                         // so far, we only support the Miden VM programs, unless `--lib` is
                         // specified (in our integration tests)
                         let is_bin = !args.contains(&"--lib".to_string());
-                        let output = wasm_to_masm(&wasm, miden_out_dir.as_std_path(), is_bin)
-                            .map_err(|e| anyhow::anyhow!("{e}"))?;
+                        let output =
+                            wasm_to_masm(&wasm, miden_out_dir.as_std_path(), is_bin, &flags)
+                                .map_err(|e| anyhow::anyhow!("{e}"))?;
                         outputs.push(output);
                     }
                     outputs
