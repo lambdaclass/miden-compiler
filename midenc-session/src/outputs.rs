@@ -4,6 +4,7 @@ use alloc::{
     fmt, format,
     str::FromStr,
     string::String,
+    vec::Vec,
 };
 
 use crate::{Path, PathBuf};
@@ -210,42 +211,50 @@ impl OutputFiles {
 
     /// Return the [OutputFile] representing where an output of `ty` type should be written,
     /// with an optional `name`, which overrides the file stem of the resulting path.
-    pub fn output_file(&self, ty: OutputType, name: Option<&str>) -> OutputFile {
+    pub fn output_file(&self, ty: OutputType, name: Option<&str>) -> Vec<OutputFile> {
         let default_name = name.unwrap_or(self.stem.as_str());
-        self.outputs
-            .get(&ty)
-            .and_then(|p| p.to_owned())
-            .map(|of| match of {
-                OutputFile::Real(path) => OutputFile::Real({
-                    let path = if path.is_absolute() {
-                        path
-                    } else {
-                        self.cwd.join(path)
-                    };
-                    if path.is_dir() {
-                        path.join(default_name).with_extension(ty.extension())
-                    } else if let Some(name) = name {
-                        path.with_stem_and_extension(name, ty.extension())
-                    } else {
-                        path
-                    }
-                }),
-                out @ OutputFile::Stdout => out,
-            })
-            .unwrap_or_else(|| {
-                let out = if ty.is_intermediate() {
-                    self.with_directory_and_extension(&self.tmp_dir, ty.extension())
-                } else if let Some(output_file) = self.out_file.as_ref() {
-                    return output_file.clone();
-                } else {
-                    self.with_directory_and_extension(&self.out_dir, ty.extension())
-                };
-                OutputFile::Real(if let Some(name) = name {
-                    out.with_stem(name)
-                } else {
-                    out
-                })
-            })
+        let a: Option<Vec<OutputFile>> =
+            self.outputs.get(&ty).and_then(|p| p.to_owned()).map(|vec| {
+                vec.into_iter()
+                    .map(|of| match of {
+                        OutputFile::Real(path) => OutputFile::Real({
+                            let path = if path.is_absolute() {
+                                path
+                            } else {
+                                self.cwd.join(path)
+                            };
+                            let complete_path = if path.is_dir() {
+                                path.join(default_name).with_extension(ty.extension())
+                            } else if let Some(name) = name {
+                                path.with_stem_and_extension(name, ty.extension())
+                            } else {
+                                path
+                            };
+                            complete_path
+                        }),
+                        out @ OutputFile::Stdout => out,
+                    })
+                    .collect()
+            });
+        a.unwrap_or_else(|| {
+            let out = if ty.is_intermediate() {
+                self.with_directory_and_extension(&self.tmp_dir, ty.extension())
+            } else if let Some(output_file) = self.out_file.as_ref() {
+                let mut a = Vec::new();
+                a.push(output_file.clone());
+                return a;
+            } else {
+                self.with_directory_and_extension(&self.out_dir, ty.extension())
+            };
+            let mut re = Vec::new();
+            let out = OutputFile::Real(if let Some(name) = name {
+                out.with_stem(name)
+            } else {
+                out
+            });
+            re.push(out);
+            re
+        })
     }
 
     /// Return the most appropriate file path for an output of `ty` type.
@@ -253,20 +262,24 @@ impl OutputFiles {
     /// The returned path _may_ be precise, if a specific file path was chosen by the user for
     /// the given output type, but in general the returned path will be derived from the current
     /// `self.stem`, and is thus an appropriate default path for the given output.
-    pub fn output_path(&self, ty: OutputType) -> PathBuf {
-        match self.output_file(ty, None) {
-            OutputFile::Real(path) => path,
-            OutputFile::Stdout => {
-                if ty.is_intermediate() {
-                    self.with_directory_and_extension(&self.tmp_dir, ty.extension())
-                } else if let Some(output_file) = self.out_file.as_ref().and_then(|of| of.as_path())
-                {
-                    output_file.to_path_buf()
-                } else {
-                    self.with_directory_and_extension(&self.out_dir, ty.extension())
+    pub fn output_path(&self, ty: OutputType) -> Vec<PathBuf> {
+        self.output_file(ty, None)
+            .into_iter()
+            .map(|of| match of {
+                OutputFile::Real(path) => path,
+                OutputFile::Stdout => {
+                    if ty.is_intermediate() {
+                        self.with_directory_and_extension(&self.tmp_dir, ty.extension())
+                    } else if let Some(output_file) =
+                        self.out_file.as_ref().and_then(|of| of.as_path())
+                    {
+                        output_file.to_path_buf()
+                    } else {
+                        self.with_directory_and_extension(&self.out_dir, ty.extension())
+                    }
                 }
-            }
-        }
+            })
+            .collect()
     }
 
     /// Constructs a file path for a temporary file of the given output type, with an optional name,
@@ -301,12 +314,12 @@ impl OutputFiles {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct OutputTypes(BTreeMap<OutputType, Option<OutputFile>>);
+pub struct OutputTypes(BTreeMap<OutputTyp e, Option<Vec<OutputFile>>>);
 impl OutputTypes {
     #[cfg(feature = "std")]
     pub fn new<I: IntoIterator<Item = OutputTypeSpec>>(entries: I) -> Result<Self, clap::Error> {
         let entries = entries.into_iter();
-        let mut map = BTreeMap::default();
+        let mut map: BTreeMap<OutputType, Option<Vec<OutputFile>>> = BTreeMap::default();
         for spec in entries {
             match spec {
                 OutputTypeSpec::All { path } => {
@@ -325,6 +338,17 @@ impl OutputTypes {
                         }
                     }
                     for ty in OutputType::all() {
+                        let mut new = Vec::new();
+                        new.push(path.clone());
+
+                        let mut a = map
+                            .entry(ty)
+                            .and_modify(|vect| {
+                                if let Some(vect) = vect {
+                                    vect.push(path.clone())
+                                }
+                            })
+                            .or_insert(Some(new));
                         map.insert(ty, path.clone());
                     }
                 }
@@ -349,11 +373,11 @@ impl OutputTypes {
         Ok(Self(map))
     }
 
-    pub fn get(&self, key: &OutputType) -> Option<&Option<OutputFile>> {
+    pub fn get(&self, key: &OutputType) -> Option<&Option<Vec<OutputFile>>> {
         self.0.get(key)
     }
 
-    pub fn insert(&mut self, key: OutputType, value: Option<OutputFile>) {
+    pub fn insert(&mut self, key: OutputType, value: Option<Vec<OutputFile>>) {
         self.0.insert(key, value);
     }
 
@@ -365,7 +389,7 @@ impl OutputTypes {
         self.0.contains_key(key)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&OutputType, &Option<OutputFile>)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (&OutputType, &Option<Vec<OutputFile>>)> + '_ {
         self.0.iter()
     }
 
@@ -373,7 +397,7 @@ impl OutputTypes {
         self.0.keys().copied()
     }
 
-    pub fn values(&self) -> impl Iterator<Item = Option<&OutputFile>> {
+    pub fn values(&self) -> impl Iterator<Item = Option<&Vec<OutputFile>>> {
         self.0.values().map(|v| v.as_ref())
     }
 
