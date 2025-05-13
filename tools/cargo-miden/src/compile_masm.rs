@@ -13,6 +13,7 @@ pub fn wasm_to_masm(
     wasm_file_path: &Path,
     output_folder: &Path,
     is_bin: bool,
+    flags: &Option<Vec<String>>,
 ) -> Result<PathBuf, Report> {
     if !output_folder.exists() {
         return Err(Report::msg(format!(
@@ -50,6 +51,12 @@ pub fn wasm_to_masm(
 
     if is_bin {
         args.push(entrypoint_opt.as_ref());
+    }
+
+    if let Some(flags) = flags {
+        for flag in flags {
+            args.push(flag.as_ref())
+        }
     }
 
     let session = Rc::new(Compiler::new_session([input], None, args));

@@ -119,7 +119,7 @@ impl Session {
     pub fn new<I>(
         inputs: I,
         output_dir: Option<PathBuf>,
-        output_file: Option<OutputFile>,
+        output_files: Option<Vec<OutputFile>>,
         target_dir: PathBuf,
         options: Options,
         emitter: Option<Arc<dyn Emitter>>,
@@ -130,13 +130,13 @@ impl Session {
     {
         let inputs = inputs.into_iter().collect::<Vec<_>>();
 
-        Self::make(inputs, output_dir, output_file, target_dir, options, emitter, source_manager)
+        Self::make(inputs, output_dir, output_files, target_dir, options, emitter, source_manager)
     }
 
     fn make(
         inputs: Vec<InputFile>,
         output_dir: Option<PathBuf>,
-        output_file: Option<OutputFile>,
+        output_files: Option<Vec<OutputFile>>,
         target_dir: PathBuf,
         options: Options,
         emitter: Option<Arc<dyn Emitter>>,
@@ -156,9 +156,21 @@ impl Session {
                     .unwrap_or("<unset>".to_string())
             );
             log::debug!(
-                target: "driver",
-                " | output_file = {}",
-                output_file.as_ref().map(|of| of.to_string()).unwrap_or("<unset>".to_string())
+                            target: "driver",
+                            " | output_files = {}",
+                output_files.as_ref()
+                    .map(|output_files| {
+                        output_files
+                            .iter()
+                            .map(|of| of.to_string())
+                            .reduce(|mut acc, e| {
+                                acc.push_str(", ");
+                                acc.push_str(e.as_str());
+                                acc
+                            })
+                            .unwrap_or("<unset>".to_string())
+                    })
+                    .unwrap_or("<unset>".to_string())
             );
             log::debug!(target: "driver", " | target_dir = {}", target_dir.display());
         }
@@ -168,6 +180,11 @@ impl Session {
             emitter.unwrap_or_else(|| options.default_emitter()),
         ));
 
+        let output_file: Option<OutputFile> = if let Some(output_files) = output_files {
+            output_files.into_iter().filter(|of| of.parent().is_some()).reduce(|acc, _| acc)
+        } else {
+            None
+        };
         let output_dir = output_dir
             .as_deref()
             .or_else(|| output_file.as_ref().and_then(|of| of.parent()))

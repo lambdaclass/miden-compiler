@@ -461,19 +461,34 @@ impl Compiler {
         log::trace!(target: "driver", "current working directory = {}", cwd.display());
 
         // Determine if a specific output file has been requested
-        let output_file = match self.output_file {
-            Some(path) => Some(OutputFile::Real(path)),
-            None if self.stdout => Some(OutputFile::Stdout),
-            None => None,
+        std::dbg!(&self.stdout);
+        std::dbg!(&self.output_file);
+        let output_files = match (self.output_file, self.stdout) {
+            (Some(path), false) => Some(vec![OutputFile::Real(path)]),
+            (None, true) => Some(vec![OutputFile::Stdout]),
+            (Some(path), true) => Some(vec![OutputFile::Real(path), OutputFile::Stdout]),
+            _ => None,
         };
 
         // Initialize output types
         let mut output_types = OutputTypes::new(self.output_types).unwrap_or_else(|err| err.exit());
         if output_types.is_empty() {
-            output_types.insert(OutputType::Masp, output_file.clone());
-        } else if output_file.is_some() && output_types.get(&OutputType::Masp).is_some() {
+            if let Some(ref output_file) = output_files {
+                for file in output_file {
+                    output_types.insert(OutputType::Masp, Some(file.clone()));
+                }
+            } else {
+                output_types.insert(OutputType::Masp, None);
+            }
+        } else if output_files.is_some() && output_types.get(&OutputType::Masp).is_some() {
             // The -o flag overrides --emit
-            output_types.insert(OutputType::Masp, output_file.clone());
+            if let Some(ref output_file) = output_files {
+                for file in output_file {
+                    output_types.insert(OutputType::Masp, Some(file.clone()));
+                }
+            } else {
+                output_types.insert(OutputType::Masp, None);
+            }
         }
 
         // Convert --exe or --lib to project type
@@ -518,7 +533,7 @@ impl Compiler {
         Session::new(
             inputs,
             self.output_dir,
-            output_file,
+            output_files,
             target_dir,
             options,
             emitter,
