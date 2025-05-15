@@ -219,9 +219,6 @@ mod tests {
         context.get_or_register_dialect::<test::TestDialect>();
         context.registered_dialects();
 
-        // let lhs =
-        //     BlockArgument::new(SourceSpan::default(), ValueId::from_u32(0), Type::U32, None, 0);
-
         let (lhs, invalid_rhs) = {
             let block = block.borrow();
             let lhs = block.get_argument(0).upcast::<dyn crate::Value>();
