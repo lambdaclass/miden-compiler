@@ -12,7 +12,7 @@ use crate::{
     },
     version::Version,
     Ident, OpPrinter, Operation, RegionKind, RegionKindInterface, Symbol, SymbolManager,
-    SymbolManagerMut, SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolUseList,
+    SymbolManagerMut, SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolTableRef, SymbolUseList,
     UnsafeIntrusiveEntityRef, Usable, Visibility,
 };
 
@@ -82,6 +82,8 @@ pub struct Component {
     #[attr]
     #[default]
     visibility: Visibility,
+    /// Reference to the parent symbol table where this operation will be inserted.
+    parent: SymbolTableRef,
     #[region]
     body: RegionRef,
     #[default]
