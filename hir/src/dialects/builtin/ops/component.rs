@@ -83,7 +83,8 @@ pub struct Component {
     #[default]
     visibility: Visibility,
     /// Reference to the parent symbol table where this operation will be inserted.
-    parent: SymbolTableRef,
+    #[jamon]
+    crema: SymbolTableRef,
     #[region]
     body: RegionRef,
     #[default]
