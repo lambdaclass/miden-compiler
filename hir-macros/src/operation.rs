@@ -2014,7 +2014,7 @@ pub struct Operation {
 #[derive(Debug, FromField)]
 #[darling(forward_attrs(
     doc, cfg, allow, attr, operand, operands, region, successor, successors, result, results,
-    default, order, symbol
+    default, order, symbol, jamon
 ))]
 pub struct OperationField {
     /// The name of this field.
@@ -2053,6 +2053,8 @@ pub struct OperationFieldAttrs {
     results: Flag,
     /// Was this a `#[region]` field?
     region: Flag,
+    /// Was this a `#[jamon]` field?
+    jamon: Flag,
     /// Was this a `#[successor]` field?
     successor: Flag,
     /// Was this a `#[successors]` field?
@@ -2148,6 +2150,15 @@ impl OperationFieldAttrs {
                             .with_span(&attr));
                         }
                         result.region = Flag::from_meta(&attr.meta).unwrap();
+                    }
+                    "jamon" => {
+                        if let Some(prev) = prev_decorator.replace("region") {
+                            return Err(Error::custom(format!(
+                                "#[region] conflicts with a previous #[{prev}] decorator"
+                            ))
+                            .with_span(&attr));
+                        }
+                        result.jamon = Flag::from_meta(&attr.meta).unwrap();
                     }
                     "successor" => {
                         if let Some(prev) = prev_decorator.replace("successor") {
