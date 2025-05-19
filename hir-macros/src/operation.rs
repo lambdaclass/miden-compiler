@@ -11,6 +11,8 @@ use syn::{parse_quote, spanned::Spanned, Ident, Token};
 pub fn derive_operation(input: syn::DeriveInput) -> darling::Result<proc_macro2::TokenStream> {
     let op = OpDefinition::from_derive_input(&input)?;
 
+    // This method is implicitly implemented using `to_tokens`, and acts as a
+    // convenience method for consumers of the `ToTokens` trait.
     Ok(op.into_token_stream())
 }
 
@@ -51,6 +53,7 @@ pub struct OpDefinition {
     /// Keyed successor groups are handled a bit differently than "normal" successor groups in terms
     /// of the types expected by the op builder for this type.
     successors: Vec<SuccessorGroup>,
+    parent_symbol_table: Option<OpSymbolTable>,
     /// The symbolic references held by this op
     symbols: Vec<Symbol>,
     /// The struct definition
@@ -63,6 +66,7 @@ pub struct OpDefinition {
 impl OpDefinition {
     /// Initialize an [OpDefinition] from the parsed [Operation] received as input
     fn from_operation(span: proc_macro2::Span, op: &mut Operation) -> darling::Result<Self> {
+        // std::dbg!(&op);
         let dialect = op.dialect.clone();
         let name = op.ident.clone();
         let opcode = op.name.clone().unwrap_or_else(|| {
@@ -71,6 +75,7 @@ impl OpDefinition {
             format_ident!("{name}", span = name.span())
         });
         let traits = core::mem::take(&mut op.traits);
+        // std::dbg!(&traits);
         let implements = core::mem::take(&mut op.implements);
 
         let fields = core::mem::replace(
@@ -82,6 +87,7 @@ impl OpDefinition {
         )
         .take_struct()
         .unwrap();
+        // std::dbg!(&fields);
 
         let mut named_fields = syn::punctuated::Punctuated::<syn::Field, Token![,]>::new();
         // Add the `op` field (which holds the underlying Operation)
@@ -123,6 +129,7 @@ impl OpDefinition {
             operands: vec![],
             results: None,
             successors: vec![],
+            parent_symbol_table: None,
             symbols: vec![],
             op,
             op_builder_impl,
@@ -141,7 +148,7 @@ impl OpDefinition {
         };
         let mut create_params = vec![];
         let (_, mut fields) = fields.split();
-
+        // std::dbg!(&fields);
         // Compute the absolute ordering of op parameters as follows:
         //
         // * By default, the ordering is implied by the order of field declarations in the struct
@@ -251,6 +258,26 @@ impl OpDefinition {
                     });
                     self.operands.push(OpOperandGroup::Named(field_name, field_ty));
                 }
+                Some(OperationFieldType::SymbolTable) => {
+                    create_params.push(OpCreateParam {
+                        param_ty: OpCreateParamType::CustomField(field_name.clone(), field_ty),
+                        r#default: field.attrs.default.is_present(),
+                    });
+                    // TODO: Remove from fields, only used when building
+                    named_fields.push(syn::Field {
+                        attrs: field.attrs.forwarded,
+                        vis: field.vis,
+                        mutability: syn::FieldMutability::None,
+                        ident: Some(field_name.clone()),
+                        colon_token: Some(syn::token::Colon(field_span)),
+                        ty: field.ty,
+                    });
+                    self.parent_symbol_table = Some(OpSymbolTable {
+                        name: field_name,
+                        // span: field_span,
+                    });
+                    // continue;
+                }
                 Some(OperationFieldType::Result) => {
                     let result = OpResult {
                         name: field_name.clone(),
@@ -354,6 +381,7 @@ impl FromDeriveInput for OpDefinition {
     fn from_derive_input(input: &syn::DeriveInput) -> darling::Result<Self> {
         let span = input.span();
         let mut operation = Operation::from_derive_input(input)?;
+        // std::dbg!(&operation);
         Self::from_operation(span, &mut operation)
     }
 }
@@ -566,7 +594,19 @@ impl quote::ToTokens for BuildOp<'_> {
         match self.0.results.as_ref() {
             None => {
                 tokens.extend(quote! {
-                    op_builder.build()
+                    let op = op_builder.build();
+                });
+                match self.0.parent_symbol_table.as_ref() {
+                    None => {}
+                    Some(OpSymbolTable { name }) => {
+                        tokens.extend(quote! {
+                            op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
+                        });
+                    }
+                };
+
+                tokens.extend(quote! {
+                    op
                 });
             }
             Some(group) => {
@@ -639,6 +679,7 @@ impl quote::ToTokens for BuildOp<'_> {
                         #verify_result_constraints
                     }
 
+
                     Ok(op)
                 })
             }
@@ -661,6 +702,7 @@ impl quote::ToTokens for OpCreateFn<'_> {
         let initialize_custom_fields = InitializeCustomFields(self.op);
         let with_symbols = WithSymbols(self.op);
         let with_attrs = WithAttrs(self.op);
+        let with_symbol_table = WithSymbolTable(self.op);
         let with_operands = WithOperands(self.op);
         let with_results = WithResults(self.op);
         let with_regions = self.op.regions.iter().map(|_| {
@@ -1468,6 +1510,11 @@ pub struct OpResult {
     pub constraint: Constraint,
 }
 
+#[derive(Debug, Clone)]
+pub struct OpSymbolTable {
+    pub name: Ident,
+}
+
 pub type OpResultGroup = EntityGroup<OpResult>;
 
 #[derive(Debug)]
@@ -2011,8 +2058,21 @@ pub struct Operation {
 /// Represents a field in the input struct
 #[derive(Debug, FromField)]
 #[darling(forward_attrs(
-    doc, cfg, allow, attr, operand, operands, region, successor, successors, result, results,
-    default, order, symbol
+    doc,
+    cfg,
+    allow,
+    attr,
+    operand,
+    operands,
+    region,
+    successor,
+    successors,
+    result,
+    results,
+    default,
+    order,
+    symbol,
+    symbol_table
 ))]
 pub struct OperationField {
     /// The name of this field.
@@ -2051,6 +2111,8 @@ pub struct OperationFieldAttrs {
     results: Flag,
     /// Was this a `#[region]` field?
     region: Flag,
+    /// Was this a `#[symbol_table]` field?
+    symbol_table: Flag,
     /// Was this a `#[successor]` field?
     successor: Flag,
     /// Was this a `#[successors]` field?
@@ -2146,6 +2208,15 @@ impl OperationFieldAttrs {
                             .with_span(&attr));
                         }
                         result.region = Flag::from_meta(&attr.meta).unwrap();
+                    }
+                    "symbol_table" => {
+                        if let Some(prev) = prev_decorator.replace("region") {
+                            return Err(Error::custom(format!(
+                                "#[region] conflicts with a previous #[{prev}] decorator"
+                            ))
+                            .with_span(&attr));
+                        }
+                        result.symbol_table = Flag::from_meta(&attr.meta).unwrap();
                     }
                     "successor" => {
                         if let Some(prev) = prev_decorator.replace("successor") {
@@ -2278,6 +2349,8 @@ impl OperationFieldAttrs {
             self.symbol
                 .as_ref()
                 .map(|sym| sym.map_ref(|sym| OperationFieldType::Symbol(sym.clone())))
+        } else if self.symbol_table.is_present() {
+            Some(SpannedValue::new(OperationFieldType::SymbolTable, self.symbol_table.span()))
         } else {
             None
         }
@@ -2301,6 +2374,8 @@ pub enum OperationFieldType {
     Region,
     /// A named successor
     Successor,
+    /// Parent symbol table
+    SymbolTable,
     /// A named variadic successor group (zero or more successors)
     Successors(SuccessorsType),
     /// A symbol operand
@@ -2319,6 +2394,7 @@ impl core::fmt::Display for OperationFieldType {
             Self::Attr(AttrKind::Default) => f.write_str("attr"),
             Self::Attr(AttrKind::Hidden) => f.write_str("attr(hidden)"),
             Self::Operand => f.write_str("operand"),
+            Self::SymbolTable => f.write_str("symbol_table"),
             Self::Operands => f.write_str("operands"),
             Self::Result => f.write_str("result"),
             Self::Results => f.write_str("results"),
@@ -2749,6 +2825,18 @@ mod tests {
                 }
             }
             Err(err) => panic!("command 'rustfmt' failed with {err}"),
+        }
+    }
+}
+
+struct WithSymbolTable<'a>(&'a OpDefinition);
+impl quote::ToTokens for WithSymbolTable<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self.0.parent_symbol_table.as_ref() {
+            None => {}
+            Some(OpSymbolTable { name }) => tokens.extend(quote! {
+                #name.borrow().as_symbol_table_operation();
+            }),
         }
     }
 }

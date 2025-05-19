@@ -42,7 +42,8 @@ impl WorldBuilder {
         ver: Version,
     ) -> Result<ComponentRef, Report> {
         let builder = PrimComponentBuilder::new(&mut self.builder, name.span());
-        let component_ref = builder(ns, name, ver.clone())?;
+        let component_ref = builder(ns, name, ver.clone(), self.world)?;
+        // let component_ref = builder(ns, name, ver.clone())?;
         let is_new = self
             .world
             .borrow_mut()
