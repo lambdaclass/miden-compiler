@@ -383,7 +383,7 @@ impl OpDefinition {
             let parent_jamon_name = Ident::new("dinosaurio", proc_macro2::Span::call_site());
 
             create_params.push(OpCreateParam {
-                param_ty: OpCreateParamType::CustomField(
+                param_ty: OpCreateParamType::Mandioca(
                     parent_jamon_name.clone(),
                     make_type("SymbolTableRef"),
                 ),
@@ -2464,6 +2464,7 @@ pub enum OpCreateParamType {
     #[allow(dead_code)]
     OperandGroup(Ident, syn::Type),
     CustomField(Ident, syn::Type),
+    Mandioca(Ident, syn::Type),
     Successor(Ident),
     SuccessorGroupNamed(Ident),
     SuccessorGroupKeyed(Ident, syn::Type),
@@ -2477,6 +2478,7 @@ impl OpCreateParam {
             | OpCreateParamType::CustomField(name, _)
             | OpCreateParamType::Operand(Operand { name, .. })
             | OpCreateParamType::OperandGroup(name, _)
+            | OpCreateParamType::Mandioca(name, _)
             | OpCreateParamType::SuccessorGroupNamed(name)
             | OpCreateParamType::SuccessorGroupKeyed(name, _)
             | OpCreateParamType::Symbol(Symbol { name, .. }) => vec![name.clone()],
@@ -2502,6 +2504,7 @@ impl OpCreateParam {
                 vec![ty.clone()]
             }
             OpCreateParamType::Operand(_) => vec![make_type("::midenc_hir::ValueRef")],
+            OpCreateParamType::Mandioca(_, ty) => vec![ty.clone()],
             OpCreateParamType::OperandGroup(group_name, _)
             | OpCreateParamType::SuccessorGroupNamed(group_name)
             | OpCreateParamType::SuccessorGroupKeyed(group_name, _) => {
