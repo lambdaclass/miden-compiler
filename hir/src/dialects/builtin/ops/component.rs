@@ -83,14 +83,14 @@ pub struct Component {
     #[default]
     visibility: Visibility,
     /// Reference to the parent symbol table where this operation will be inserted.
-    #[jamon]
-    crema: SymbolTableRef,
     #[region]
     body: RegionRef,
     #[default]
     symbols: SymbolMap,
     #[default]
     uses: SymbolUseList,
+    #[jamon]
+    crema: SymbolTableRef,
 }
 
 impl OpPrinter for Component {

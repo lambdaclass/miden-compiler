@@ -10,7 +10,12 @@ use syn::{parse_quote, spanned::Spanned, Ident, Token};
 
 pub fn derive_operation(input: syn::DeriveInput) -> darling::Result<proc_macro2::TokenStream> {
     let op = OpDefinition::from_derive_input(&input)?;
+    // if op.name ==
+    // std::dbg!(&input);
+    // Sigue teniendo jamon
 
+    // This method is implicitly implemented using `to_tokens`, and acts as a
+    // convenience method for consumers of the `ToTokens` trait.
     Ok(op.into_token_stream())
 }
 
@@ -51,6 +56,7 @@ pub struct OpDefinition {
     /// Keyed successor groups are handled a bit differently than "normal" successor groups in terms
     /// of the types expected by the op builder for this type.
     successors: Vec<SuccessorGroup>,
+    parent_jamon: Option<OpJamon>,
     /// The symbolic references held by this op
     symbols: Vec<Symbol>,
     /// The struct definition
@@ -63,6 +69,7 @@ pub struct OpDefinition {
 impl OpDefinition {
     /// Initialize an [OpDefinition] from the parsed [Operation] received as input
     fn from_operation(span: proc_macro2::Span, op: &mut Operation) -> darling::Result<Self> {
+        // std::dbg!(&op);
         let dialect = op.dialect.clone();
         let name = op.ident.clone();
         let opcode = op.name.clone().unwrap_or_else(|| {
@@ -71,8 +78,10 @@ impl OpDefinition {
             format_ident!("{name}", span = name.span())
         });
         let traits = core::mem::take(&mut op.traits);
+        // std::dbg!(&traits);
         let implements = core::mem::take(&mut op.implements);
 
+        // std::dbg!("NUEVOS FIELDS");
         let fields = core::mem::replace(
             &mut op.data,
             darling::ast::Data::Struct(darling::ast::Fields::new(
@@ -82,6 +91,7 @@ impl OpDefinition {
         )
         .take_struct()
         .unwrap();
+        // std::dbg!(&fields);
 
         let mut named_fields = syn::punctuated::Punctuated::<syn::Field, Token![,]>::new();
         // Add the `op` field (which holds the underlying Operation)
@@ -123,6 +133,7 @@ impl OpDefinition {
             operands: vec![],
             results: None,
             successors: vec![],
+            parent_jamon: None,
             symbols: vec![],
             op,
             op_builder_impl,
@@ -141,7 +152,7 @@ impl OpDefinition {
         };
         let mut create_params = vec![];
         let (_, mut fields) = fields.split();
-
+        // std::dbg!(&fields);
         // Compute the absolute ordering of op parameters as follows:
         //
         // * By default, the ordering is implied by the order of field declarations in the struct
@@ -190,6 +201,8 @@ impl OpDefinition {
             let field_ty = field.ty.clone();
 
             let op_field_ty = field.attrs.pseudo_type();
+            std::dbg!(&field);
+            std::dbg!(&op_field_ty);
             match op_field_ty.as_deref() {
                 // Forwarded field
                 None => {
@@ -250,6 +263,22 @@ impl OpDefinition {
                         r#default: field.attrs.default.is_present(),
                     });
                     self.operands.push(OpOperandGroup::Named(field_name, field_ty));
+                }
+                Some(OperationFieldType::Jamon) => {
+                    create_params.push(OpCreateParam {
+                        param_ty: OpCreateParamType::CustomField(field_name.clone(), field_ty),
+                        r#default: field.attrs.default.is_present(),
+                    });
+                    named_fields.push(syn::Field {
+                        attrs: field.attrs.forwarded,
+                        vis: field.vis,
+                        mutability: syn::FieldMutability::None,
+                        ident: Some(field_name),
+                        colon_token: Some(syn::token::Colon(field_span)),
+                        ty: field.ty,
+                    });
+                    continue;
+                    // panic!();
                 }
                 Some(OperationFieldType::Result) => {
                     let result = OpResult {
@@ -354,6 +383,7 @@ impl FromDeriveInput for OpDefinition {
     fn from_derive_input(input: &syn::DeriveInput) -> darling::Result<Self> {
         let span = input.span();
         let mut operation = Operation::from_derive_input(input)?;
+        // std::dbg!(&operation);
         Self::from_operation(span, &mut operation)
     }
 }
@@ -638,6 +668,7 @@ impl quote::ToTokens for BuildOp<'_> {
                         let op = op.borrow();
                         #verify_result_constraints
                     }
+
 
                     Ok(op)
                 })
@@ -1470,6 +1501,11 @@ pub struct OpResult {
     pub constraint: Constraint,
 }
 
+#[derive(Debug, Clone)]
+pub struct OpJamon {
+    pub name: Ident,
+}
+
 pub type OpResultGroup = EntityGroup<OpResult>;
 
 #[derive(Debug)]
@@ -2291,6 +2327,8 @@ impl OperationFieldAttrs {
             self.symbol
                 .as_ref()
                 .map(|sym| sym.map_ref(|sym| OperationFieldType::Symbol(sym.clone())))
+        } else if self.jamon.is_present() {
+            Some(SpannedValue::new(OperationFieldType::Jamon, self.jamon.span()))
         } else {
             None
         }
@@ -2314,6 +2352,8 @@ pub enum OperationFieldType {
     Region,
     /// A named successor
     Successor,
+    /// Parent symbol table
+    Jamon,
     /// A named variadic successor group (zero or more successors)
     Successors(SuccessorsType),
     /// A symbol operand
@@ -2332,6 +2372,7 @@ impl core::fmt::Display for OperationFieldType {
             Self::Attr(AttrKind::Default) => f.write_str("attr"),
             Self::Attr(AttrKind::Hidden) => f.write_str("attr(hidden)"),
             Self::Operand => f.write_str("operand"),
+            Self::Jamon => f.write_str("jamon"),
             Self::Operands => f.write_str("operands"),
             Self::Result => f.write_str("result"),
             Self::Results => f.write_str("results"),
@@ -2769,9 +2810,16 @@ mod tests {
 struct WithJamon<'a>(&'a OpDefinition);
 impl quote::ToTokens for WithJamon<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        // std::dbg!("Funcion to tokens de with jamon");
-        tokens.extend(quote! {
-            std::dbg!("DBG quoteado de with_jamon");
-        })
+        match self.0.parent_jamon.as_ref() {
+            None => {
+                // std::dbg!("No hay definido un parent");
+            }
+            Some(_) => {
+                // std::dbg!("Hay definido un parent");
+                tokens.extend(quote! {
+                    std::dbg!("DBG quoteado de with_jamon");
+                })
+            }
+        }
     }
 }
