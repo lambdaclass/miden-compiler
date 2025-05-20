@@ -609,10 +609,8 @@ impl quote::ToTokens for BuildOp<'_> {
                     Some(OpJamon { name }) => {
                         std::dbg!("Hay definido un parent");
                         tokens.extend(quote! {
-                            #name.borrow_mut().symbol_manager_mut().insert_new(op, crate::ProgramPoint::Invalid);
-                            // core::ptr::addr_of_mut!((*__ptr).#id).write(#id);
-                            std::dbg!("DBG quoteado de with_jamon");
-                        })
+                            op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
+                        });
                     }
                 };
 
