@@ -600,7 +600,8 @@ impl quote::ToTokens for BuildOp<'_> {
         match self.0.results.as_ref() {
             None => {
                 tokens.extend(quote! {
-                    op_builder.build()
+                    let op = op_builder.build();
+                    op
                 });
             }
             Some(group) => {
