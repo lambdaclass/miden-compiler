@@ -280,9 +280,9 @@ impl OpDefinition {
                     });
                     self.parent_jamon = Some(OpJamon {
                         name: field_name,
-                        span: field_span,
+                        // span: field_span,
                     });
-                    continue;
+                    // continue;
                 }
                 Some(OperationFieldType::Result) => {
                     let result = OpResult {
@@ -754,9 +754,7 @@ impl quote::ToTokens for OpCreateFn<'_> {
                 )*
                 #with_successors
                 #with_results
-                unsafe {
-                    #with_jamon
-                }
+                #with_jamon
 
                 // Finalize construction of this op, verifying it
                 #build_op
@@ -1510,7 +1508,7 @@ pub struct OpResult {
 #[derive(Debug, Clone)]
 pub struct OpJamon {
     pub name: Ident,
-    pub span: proc_macro2::Span,
+    // pub span: proc_macro2::Span,
 }
 
 pub type OpResultGroup = EntityGroup<OpResult>;
@@ -2821,10 +2819,10 @@ impl quote::ToTokens for WithJamon<'_> {
             None => {
                 std::dbg!("No hay definido un parent");
             }
-            Some(OpJamon { name, span }) => {
+            Some(OpJamon { name }) => {
                 std::dbg!("Hay definido un parent");
                 tokens.extend(quote! {
-                    std::dbg!(#name);
+                    #name.borrow().as_symbol_table_operation();
                     // core::ptr::addr_of_mut!((*__ptr).#id).write(#id);
                     std::dbg!("DBG quoteado de with_jamon");
                 })
