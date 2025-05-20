@@ -601,6 +601,22 @@ impl quote::ToTokens for BuildOp<'_> {
             None => {
                 tokens.extend(quote! {
                     let op = op_builder.build();
+                });
+                match self.0.parent_jamon.as_ref() {
+                    None => {
+                        std::dbg!("No hay definido un parent");
+                    }
+                    Some(OpJamon { name }) => {
+                        std::dbg!("Hay definido un parent");
+                        tokens.extend(quote! {
+                            #name.borrow().symbol_manager();
+                            // core::ptr::addr_of_mut!((*__ptr).#id).write(#id);
+                            std::dbg!("DBG quoteado de with_jamon");
+                        })
+                    }
+                };
+
+                tokens.extend(quote! {
                     op
                 });
             }
@@ -755,7 +771,7 @@ impl quote::ToTokens for OpCreateFn<'_> {
                 )*
                 #with_successors
                 #with_results
-                #with_jamon
+                // #with_jamon
 
                 // Finalize construction of this op, verifying it
                 #build_op
