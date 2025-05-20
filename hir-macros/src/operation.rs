@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use darling::{
-    util::{Flag, SpannedValue},
+    util::{Flag, PathList, SpannedValue},
     Error, FromDeriveInput, FromField, FromMeta,
 };
 use inflector::Inflector;
@@ -69,7 +69,6 @@ pub struct OpDefinition {
 impl OpDefinition {
     /// Initialize an [OpDefinition] from the parsed [Operation] received as input
     fn from_operation(span: proc_macro2::Span, op: &mut Operation) -> darling::Result<Self> {
-        // std::dbg!(&op);
         let dialect = op.dialect.clone();
         let name = op.ident.clone();
         let opcode = op.name.clone().unwrap_or_else(|| {
@@ -146,6 +145,7 @@ impl OpDefinition {
     }
 
     fn hydrate(&mut self, fields: darling::ast::Fields<OperationField>) -> darling::Result<()> {
+        std::dbg!(&self.traits);
         let named_fields = match &mut self.op.fields {
             syn::Fields::Named(syn::FieldsNamed { ref mut named, .. }) => named,
             _ => unreachable!(),
@@ -265,6 +265,8 @@ impl OpDefinition {
                     self.operands.push(OpOperandGroup::Named(field_name, field_ty));
                 }
                 Some(OperationFieldType::Jamon) => {
+                    std::dbg!("MANTECA MANTECA");
+                    std::dbg!(&field_ty);
                     create_params.push(OpCreateParam {
                         param_ty: OpCreateParamType::CustomField(field_name.clone(), field_ty),
                         r#default: field.attrs.default.is_present(),
@@ -377,8 +379,34 @@ impl OpDefinition {
                 }
             }
         }
+        if self.traits.iter().any(|tr| tr.get_ident().unwrap().to_string() == "Fideos") {
+            let parent_jamon_name = Ident::new("dinosaurio", proc_macro2::Span::call_site());
+
+            create_params.push(OpCreateParam {
+                param_ty: OpCreateParamType::CustomField(
+                    parent_jamon_name.clone(),
+                    make_type("SymbolTableRef"),
+                ),
+                r#default: false,
+            });
+            self.parent_jamon = Some(OpJamon {
+                name: parent_jamon_name,
+                // span: field_span,
+            });
+        }
 
         self.op_builder_impl.set_create_params(&self.op.generics, create_params);
+
+        // for tr in self.traits.iter() {
+        //     std::dbg!("BARRIl");
+        //     std::dbg!(tr.get_ident().unwrap().to_string());
+        // }
+        //     // if *tr.get_ident().unwrap() == <&str as Into<Ident>>::into("Fideos") {
+        //     //     std::dbg!("BANDERA");
+        //     // } else {
+        //     //     std::dbg!("TERMO");
+        //     // };
+        // }
 
         Ok(())
     }
@@ -609,7 +637,7 @@ impl quote::ToTokens for BuildOp<'_> {
                     Some(OpJamon { name }) => {
                         std::dbg!("Hay definido un parent");
                         tokens.extend(quote! {
-                            op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
+                            // op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
                         });
                     }
                 };
