@@ -6,7 +6,7 @@ use crate::{
         NoTerminator, SingleBlock, SingleRegion,
     },
     Ident, OpPrinter, Operation, RegionKind, RegionKindInterface, Symbol, SymbolManager,
-    SymbolManagerMut, SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolUseList,
+    SymbolManagerMut, SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolTableRef, SymbolUseList,
     UnsafeIntrusiveEntityRef, Usable, Visibility,
 };
 
@@ -174,6 +174,11 @@ impl SymbolTable for Module {
     #[inline(always)]
     fn as_symbol_table_operation(&self) -> &Operation {
         &self.op
+    }
+
+    #[inline(always)]
+    fn as_symbol_table_ref(&self) -> SymbolTableRef {
+        unsafe { SymbolTableRef::from_raw(self) }
     }
 
     #[inline(always)]

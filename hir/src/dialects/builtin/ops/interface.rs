@@ -8,8 +8,8 @@ use crate::{
         NoTerminator, SingleBlock, SingleRegion,
     },
     Ident, Op, Operation, RegionKind, RegionKindInterface, Symbol, SymbolManager, SymbolManagerMut,
-    SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolUseList, UnsafeIntrusiveEntityRef, Usable,
-    Visibility,
+    SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolTableRef, SymbolUseList,
+    UnsafeIntrusiveEntityRef, Usable, Visibility,
 };
 
 pub type InterfaceRef = UnsafeIntrusiveEntityRef<Interface>;
@@ -117,6 +117,11 @@ impl SymbolTable for Interface {
     #[inline(always)]
     fn as_symbol_table_operation(&self) -> &Operation {
         &self.op
+    }
+
+    #[inline(always)]
+    fn as_symbol_table_ref(&self) -> SymbolTableRef {
+        unsafe { SymbolTableRef::from_raw(self) }
     }
 
     #[inline(always)]

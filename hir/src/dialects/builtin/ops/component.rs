@@ -1,5 +1,7 @@
 mod interface;
 
+use core::borrow::BorrowMut;
+
 pub use self::interface::{
     ComponentExport, ComponentId, ComponentInterface, ModuleExport, ModuleInterface,
 };
@@ -7,8 +9,8 @@ use crate::{
     derive::operation,
     dialects::builtin::BuiltinDialect,
     traits::{
-        GraphRegionNoTerminator, HasOnlyGraphRegion, IsolatedFromAbove, NoRegionArguments,
-        NoTerminator, SingleBlock, SingleRegion,
+        BelongsInSymbolTable, GraphRegionNoTerminator, HasOnlyGraphRegion, IsolatedFromAbove,
+        NoRegionArguments, NoTerminator, SingleBlock, SingleRegion,
     },
     version::Version,
     Ident, OpPrinter, Operation, RegionKind, RegionKindInterface, Symbol, SymbolManager,
@@ -69,6 +71,7 @@ pub type ComponentRef = UnsafeIntrusiveEntityRef<Component>;
         HasOnlyGraphRegion,
         GraphRegionNoTerminator,
         IsolatedFromAbove,
+        BelongsInSymbolTable,
     ),
     implements(RegionKindInterface, SymbolTable, Symbol, OpPrinter)
 )]
@@ -79,8 +82,6 @@ pub struct Component {
     name: Ident,
     #[attr]
     version: Version,
-    #[symbol_table]
-    parent: SymbolTableRef,
     #[attr]
     #[default]
     visibility: Visibility,
@@ -193,6 +194,11 @@ impl SymbolTable for Component {
     #[inline(always)]
     fn as_symbol_table_operation(&self) -> &Operation {
         &self.op
+    }
+
+    #[inline(always)]
+    fn as_symbol_table_ref(&self) -> SymbolTableRef {
+        unsafe { SymbolTableRef::from_raw(self) }
     }
 
     #[inline(always)]

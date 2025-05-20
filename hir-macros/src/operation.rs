@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use darling::{
-    util::{Flag, SpannedValue},
+    util::{Flag, PathList, SpannedValue},
     Error, FromDeriveInput, FromField, FromMeta,
 };
 use inflector::Inflector;
@@ -66,7 +66,6 @@ pub struct OpDefinition {
 impl OpDefinition {
     /// Initialize an [OpDefinition] from the parsed [Operation] received as input
     fn from_operation(span: proc_macro2::Span, op: &mut Operation) -> darling::Result<Self> {
-        // std::dbg!(&op);
         let dialect = op.dialect.clone();
         let name = op.ident.clone();
         let opcode = op.name.clone().unwrap_or_else(|| {
@@ -142,6 +141,7 @@ impl OpDefinition {
     }
 
     fn hydrate(&mut self, fields: darling::ast::Fields<OperationField>) -> darling::Result<()> {
+        // std::dbg!(&self.traits);
         let named_fields = match &mut self.op.fields {
             syn::Fields::Named(syn::FieldsNamed { ref mut named, .. }) => named,
             _ => unreachable!(),
@@ -197,6 +197,7 @@ impl OpDefinition {
             let field_ty = field.ty.clone();
 
             let op_field_ty = field.attrs.pseudo_type();
+
             match op_field_ty.as_deref() {
                 // Forwarded field
                 None => {
@@ -257,26 +258,6 @@ impl OpDefinition {
                         r#default: field.attrs.default.is_present(),
                     });
                     self.operands.push(OpOperandGroup::Named(field_name, field_ty));
-                }
-                Some(OperationFieldType::SymbolTable) => {
-                    create_params.push(OpCreateParam {
-                        param_ty: OpCreateParamType::CustomField(field_name.clone(), field_ty),
-                        r#default: field.attrs.default.is_present(),
-                    });
-                    // TODO: Remove from fields, only used when building
-                    named_fields.push(syn::Field {
-                        attrs: field.attrs.forwarded,
-                        vis: field.vis,
-                        mutability: syn::FieldMutability::None,
-                        ident: Some(field_name.clone()),
-                        colon_token: Some(syn::token::Colon(field_span)),
-                        ty: field.ty,
-                    });
-                    self.parent_symbol_table = Some(OpSymbolTable {
-                        name: field_name,
-                        // span: field_span,
-                    });
-                    // continue;
                 }
                 Some(OperationFieldType::Result) => {
                     let result = OpResult {
@@ -370,6 +351,29 @@ impl OpDefinition {
                     self.symbols.push(symbol);
                 }
             }
+        }
+
+        if self.traits.iter().any(|tr| tr.get_ident().unwrap() == "BelongsInSymbolTable") {
+            let parent_symbol_table =
+                Ident::new("parent_symbol_table", proc_macro2::Span::call_site());
+
+            let parent_symbol_type = syn::Type::Reference(syn::TypeReference {
+                and_token: syn::token::And(proc_macro2::Span::call_site()),
+                lifetime: None,
+                mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
+                elem: Box::new(make_type("SymbolTableRef")),
+            });
+
+            create_params.push(OpCreateParam {
+                param_ty: OpCreateParamType::BuildOnlyParameter(
+                    parent_symbol_table.clone(),
+                    parent_symbol_type,
+                ),
+                r#default: false,
+            });
+            self.parent_symbol_table = Some(OpSymbolTable {
+                name: parent_symbol_table,
+            });
         }
 
         self.op_builder_impl.set_create_params(&self.op.generics, create_params);
@@ -600,7 +604,18 @@ impl quote::ToTokens for BuildOp<'_> {
                     None => {}
                     Some(OpSymbolTable { name }) => {
                         tokens.extend(quote! {
-                            op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
+                            op.as_ref().map(|op| {
+                                let is_new = #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
+                                assert!(
+                                    is_new,
+                                    "component already exists in world"
+                                    // ComponentId {
+                                    //     namespace: ns.name,
+                                    //     name: name.name,
+                                    //     version: ver
+                                    // }
+                                );
+                            });
                         });
                     }
                 };
@@ -702,7 +717,6 @@ impl quote::ToTokens for OpCreateFn<'_> {
         let initialize_custom_fields = InitializeCustomFields(self.op);
         let with_symbols = WithSymbols(self.op);
         let with_attrs = WithAttrs(self.op);
-        let with_symbol_table = WithSymbolTable(self.op);
         let with_operands = WithOperands(self.op);
         let with_results = WithResults(self.op);
         let with_regions = self.op.regions.iter().map(|_| {
@@ -2349,8 +2363,6 @@ impl OperationFieldAttrs {
             self.symbol
                 .as_ref()
                 .map(|sym| sym.map_ref(|sym| OperationFieldType::Symbol(sym.clone())))
-        } else if self.symbol_table.is_present() {
-            Some(SpannedValue::new(OperationFieldType::SymbolTable, self.symbol_table.span()))
         } else {
             None
         }
@@ -2374,8 +2386,6 @@ pub enum OperationFieldType {
     Region,
     /// A named successor
     Successor,
-    /// Parent symbol table
-    SymbolTable,
     /// A named variadic successor group (zero or more successors)
     Successors(SuccessorsType),
     /// A symbol operand
@@ -2394,7 +2404,6 @@ impl core::fmt::Display for OperationFieldType {
             Self::Attr(AttrKind::Default) => f.write_str("attr"),
             Self::Attr(AttrKind::Hidden) => f.write_str("attr(hidden)"),
             Self::Operand => f.write_str("operand"),
-            Self::SymbolTable => f.write_str("symbol_table"),
             Self::Operands => f.write_str("operands"),
             Self::Result => f.write_str("result"),
             Self::Results => f.write_str("results"),
@@ -2438,6 +2447,7 @@ pub enum OpCreateParamType {
     #[allow(dead_code)]
     OperandGroup(Ident, syn::Type),
     CustomField(Ident, syn::Type),
+    BuildOnlyParameter(Ident, syn::Type),
     Successor(Ident),
     SuccessorGroupNamed(Ident),
     SuccessorGroupKeyed(Ident, syn::Type),
@@ -2451,6 +2461,7 @@ impl OpCreateParam {
             | OpCreateParamType::CustomField(name, _)
             | OpCreateParamType::Operand(Operand { name, .. })
             | OpCreateParamType::OperandGroup(name, _)
+            | OpCreateParamType::BuildOnlyParameter(name, _)
             | OpCreateParamType::SuccessorGroupNamed(name)
             | OpCreateParamType::SuccessorGroupKeyed(name, _)
             | OpCreateParamType::Symbol(Symbol { name, .. }) => vec![name.clone()],
@@ -2476,6 +2487,7 @@ impl OpCreateParam {
                 vec![ty.clone()]
             }
             OpCreateParamType::Operand(_) => vec![make_type("::midenc_hir::ValueRef")],
+            OpCreateParamType::BuildOnlyParameter(_, ty) => vec![ty.clone()],
             OpCreateParamType::OperandGroup(group_name, _)
             | OpCreateParamType::SuccessorGroupNamed(group_name)
             | OpCreateParamType::SuccessorGroupKeyed(group_name, _) => {
@@ -2825,18 +2837,6 @@ mod tests {
                 }
             }
             Err(err) => panic!("command 'rustfmt' failed with {err}"),
-        }
-    }
-}
-
-struct WithSymbolTable<'a>(&'a OpDefinition);
-impl quote::ToTokens for WithSymbolTable<'_> {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        match self.0.parent_symbol_table.as_ref() {
-            None => {}
-            Some(OpSymbolTable { name }) => tokens.extend(quote! {
-                #name.borrow().as_symbol_table_operation();
-            }),
         }
     }
 }
