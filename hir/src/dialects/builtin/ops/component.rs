@@ -79,6 +79,8 @@ pub struct Component {
     name: Ident,
     #[attr]
     version: Version,
+    #[jamon]
+    crema: SymbolTableRef,
     #[attr]
     #[default]
     visibility: Visibility,
@@ -89,8 +91,6 @@ pub struct Component {
     symbols: SymbolMap,
     #[default]
     uses: SymbolUseList,
-    #[jamon]
-    crema: SymbolTableRef,
 }
 
 impl OpPrinter for Component {

@@ -269,16 +269,17 @@ impl OpDefinition {
                         param_ty: OpCreateParamType::CustomField(field_name.clone(), field_ty),
                         r#default: field.attrs.default.is_present(),
                     });
+                    // TODO: Remove from fields, only used when building
                     named_fields.push(syn::Field {
                         attrs: field.attrs.forwarded,
                         vis: field.vis,
                         mutability: syn::FieldMutability::None,
-                        ident: Some(field_name),
+                        ident: Some(field_name.clone()),
                         colon_token: Some(syn::token::Colon(field_span)),
                         ty: field.ty,
                     });
+                    self.parent_jamon = Some(OpJamon { name: field_name });
                     continue;
-                    // panic!();
                 }
                 Some(OperationFieldType::Result) => {
                     let result = OpResult {
@@ -2812,10 +2813,10 @@ impl quote::ToTokens for WithJamon<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self.0.parent_jamon.as_ref() {
             None => {
-                // std::dbg!("No hay definido un parent");
+                std::dbg!("No hay definido un parent");
             }
             Some(_) => {
-                // std::dbg!("Hay definido un parent");
+                std::dbg!("Hay definido un parent");
                 tokens.extend(quote! {
                     std::dbg!("DBG quoteado de with_jamon");
                 })
