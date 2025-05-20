@@ -633,11 +633,13 @@ impl quote::ToTokens for BuildOp<'_> {
                 match self.0.parent_jamon.as_ref() {
                     None => {
                         std::dbg!("No hay definido un parent");
+                        std::dbg!("PODRIDO");
                     }
                     Some(OpJamon { name }) => {
+                        std::dbg!("ROQUEFORT");
                         std::dbg!("Hay definido un parent");
                         tokens.extend(quote! {
-                            // op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
+                            op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
                         });
                     }
                 };
