@@ -145,7 +145,7 @@ impl OpDefinition {
     }
 
     fn hydrate(&mut self, fields: darling::ast::Fields<OperationField>) -> darling::Result<()> {
-        std::dbg!(&self.traits);
+        // std::dbg!(&self.traits);
         let named_fields = match &mut self.op.fields {
             syn::Fields::Named(syn::FieldsNamed { ref mut named, .. }) => named,
             _ => unreachable!(),
@@ -201,8 +201,8 @@ impl OpDefinition {
             let field_ty = field.ty.clone();
 
             let op_field_ty = field.attrs.pseudo_type();
-            std::dbg!(&field);
-            std::dbg!(&op_field_ty);
+            // std::dbg!(&field);
+            // std::dbg!(&op_field_ty);
             match op_field_ty.as_deref() {
                 // Forwarded field
                 None => {
@@ -265,8 +265,8 @@ impl OpDefinition {
                     self.operands.push(OpOperandGroup::Named(field_name, field_ty));
                 }
                 Some(OperationFieldType::Jamon) => {
-                    std::dbg!("MANTECA MANTECA");
-                    std::dbg!(&field_ty);
+                    // std::dbg!("MANTECA MANTECA");
+                    // std::dbg!(&field_ty);
                     create_params.push(OpCreateParam {
                         param_ty: OpCreateParamType::CustomField(field_name.clone(), field_ty),
                         r#default: field.attrs.default.is_present(),
