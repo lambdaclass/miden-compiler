@@ -382,11 +382,14 @@ impl OpDefinition {
         if self.traits.iter().any(|tr| tr.get_ident().unwrap().to_string() == "Fideos") {
             let parent_jamon_name = Ident::new("dinosaurio", proc_macro2::Span::call_site());
 
+            let c = syn::Type::Reference(syn::TypeReference {
+                and_token: syn::token::And(proc_macro2::Span::call_site()),
+                lifetime: None,
+                mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
+                elem: Box::new(make_type("SymbolTableRef")),
+            });
             create_params.push(OpCreateParam {
-                param_ty: OpCreateParamType::Mandioca(
-                    parent_jamon_name.clone(),
-                    make_type("SymbolTableRef"),
-                ),
+                param_ty: OpCreateParamType::Mandioca(parent_jamon_name.clone(), c),
                 r#default: false,
             });
             self.parent_jamon = Some(OpJamon {

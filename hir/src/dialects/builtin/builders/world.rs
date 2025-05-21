@@ -42,23 +42,25 @@ impl WorldBuilder {
         ver: Version,
     ) -> Result<ComponentRef, Report> {
         let builder = PrimComponentBuilder::new(&mut self.builder, name.span());
-        let component_ref = builder(ns, name, ver.clone(), self.world)?;
+        let component_ref =
+            builder(ns, name, ver.clone(), &mut self.world.borrow_mut().as_symbol_table_ref())?;
         // let component_ref = builder(ns, name, ver.clone())?;
-        let is_new = self
-            .world
-            .borrow_mut()
-            .symbol_manager_mut()
-            .insert_new(component_ref, crate::ProgramPoint::Invalid);
-        assert!(
-            is_new,
-            "component {} already exists in world",
-            ComponentId {
-                namespace: ns.name,
-                name: name.name,
-                version: ver
-            }
-        );
-        Ok(component_ref)
+        // let is_new = self
+        //     .world
+        //     .borrow_mut()
+        //     .symbol_manager_mut()
+        //     .insert_new(component_ref, crate::ProgramPoint::Invalid);
+        // assert!(
+        //     is_new,
+        //     "component {} already exists in world",
+        //     ComponentId {
+        //         namespace: ns.name,
+        //         name: name.name,
+        //         version: ver
+        //     }
+        // );
+        // Ok(component_ref)
+        todo!()
     }
 
     pub fn find_component(&self, id: &ComponentId) -> Option<ComponentRef> {

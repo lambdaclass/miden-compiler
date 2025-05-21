@@ -197,6 +197,11 @@ impl SymbolTable for Component {
     }
 
     #[inline(always)]
+    fn as_symbol_table_ref(&self) -> SymbolTableRef {
+        todo!()
+    }
+
+    #[inline(always)]
     fn as_symbol_table_operation_mut(&mut self) -> &mut Operation {
         &mut self.op
     }
