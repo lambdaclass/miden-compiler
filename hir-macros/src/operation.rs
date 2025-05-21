@@ -93,7 +93,6 @@ impl OpDefinition {
         // std::dbg!(&fields);
 
         let mut named_fields = syn::punctuated::Punctuated::<syn::Field, Token![,]>::new();
-
         // Add the `op` field (which holds the underlying Operation)
         named_fields.push(syn::Field {
             attrs: vec![],
@@ -418,12 +417,11 @@ impl OpDefinition {
         Ok(())
     }
 }
-
 impl FromDeriveInput for OpDefinition {
     fn from_derive_input(input: &syn::DeriveInput) -> darling::Result<Self> {
         let span = input.span();
         let mut operation = Operation::from_derive_input(input)?;
-
+        // std::dbg!(&operation);
         Self::from_operation(span, &mut operation)
     }
 }
@@ -647,7 +645,7 @@ impl quote::ToTokens for BuildOp<'_> {
                         std::dbg!("ROQUEFORT");
                         std::dbg!("Hay definido un parent");
                         tokens.extend(quote! {
-                            op.as_ref().map(|op| #name.insert_new(*op, crate::ProgramPoint::Invalid));
+                            op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
                         });
                     }
                 };
@@ -737,20 +735,7 @@ impl quote::ToTokens for BuildOp<'_> {
 impl quote::ToTokens for OpCreateFn<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let dialect = &self.op.dialect;
-
-        // Create a new Lifetime
-        let lifetime: syn::Lifetime = syn::Lifetime::new("'a", proc_macro2::Span::call_site());
-        let lifetime = syn::LifetimeParam::new(lifetime);
-
-        // Create a LifetimeDef
-        // let lifetime_def = syn::LifetimeDef::new(lifetime);
-
-        // self.generics.params.insert(0, syn::GenericParam::Lifetime(lifetime));
-        //https://users.rust-lang.org/t/add-lifetime-to-procedural-macro/97988/4
-        let mut generics = self.generics.clone();
-        generics.params.insert(0, syn::GenericParam::Lifetime(lifetime));
-
-        let (impl_generics, _, where_clause) = generics.split_for_impl();
+        let (impl_generics, _, where_clause) = self.generics.split_for_impl();
         let param_names =
             self.op.op_builder_impl.create_params.iter().flat_map(OpCreateParam::bindings);
         let param_types = self
