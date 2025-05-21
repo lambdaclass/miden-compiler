@@ -42,6 +42,9 @@ impl WorldBuilder {
         ver: Version,
     ) -> Result<ComponentRef, Report> {
         let builder = PrimComponentBuilder::new(&mut self.builder, name.span());
+        // This crashes with the following error
+        // AliasingViolationError { kind: Mutable, location: Location { file: "hir/src/dialects/builtin/builders/world.rs", line: 47, col: 60 } }
+
         let component_ref =
             builder(ns, name, ver.clone(), &mut self.world.borrow_mut().as_symbol_table_ref())?;
         // let a = self.world.borrow_mut();
