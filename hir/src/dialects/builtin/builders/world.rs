@@ -45,8 +45,12 @@ impl WorldBuilder {
         // This crashes with the following error
         // AliasingViolationError { kind: Mutable, location: Location { file: "hir/src/dialects/builtin/builders/world.rs", line: 47, col: 60 } }
 
-        let component_ref =
-            builder(ns, name, ver.clone(), &mut self.world.borrow_mut().as_symbol_table_ref())?;
+        // But with this tmp variable, it does not crash. All tests pass.
+        // I'll procede to check if the symbol table is actually updated. But it's something :D
+        let tmp = &mut self.world.borrow_mut().as_symbol_table_ref();
+
+        let component_ref = builder(ns, name, ver.clone(), tmp)?;
+
         // let a = self.world.borrow_mut();
         // let component_ref = builder(ns, name, ver.clone())?;
         // let is_new = self
