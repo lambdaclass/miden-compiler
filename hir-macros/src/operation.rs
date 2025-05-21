@@ -379,6 +379,7 @@ impl OpDefinition {
                 }
             }
         }
+
         if self.traits.iter().any(|tr| tr.get_ident().unwrap().to_string() == "Fideos") {
             let parent_jamon_name = Ident::new("dinosaurio", proc_macro2::Span::call_site());
 
@@ -388,6 +389,7 @@ impl OpDefinition {
                 mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
                 elem: Box::new(make_type("SymbolTableRef")),
             });
+            // let c = make_type("SymbolManagerMut<'_>");
             create_params.push(OpCreateParam {
                 param_ty: OpCreateParamType::Mandioca(parent_jamon_name.clone(), c),
                 r#default: false,

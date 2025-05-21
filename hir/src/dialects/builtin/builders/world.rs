@@ -44,6 +44,7 @@ impl WorldBuilder {
         let builder = PrimComponentBuilder::new(&mut self.builder, name.span());
         let component_ref =
             builder(ns, name, ver.clone(), &mut self.world.borrow_mut().as_symbol_table_ref())?;
+        // let a = self.world.borrow_mut();
         // let component_ref = builder(ns, name, ver.clone())?;
         // let is_new = self
         //     .world
@@ -59,8 +60,7 @@ impl WorldBuilder {
         //         version: ver
         //     }
         // );
-        // Ok(component_ref)
-        todo!()
+        Ok(component_ref)
     }
 
     pub fn find_component(&self, id: &ComponentId) -> Option<ComponentRef> {

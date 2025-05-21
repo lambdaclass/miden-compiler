@@ -71,7 +71,7 @@ impl SymbolTable for World {
 
     #[inline(always)]
     fn as_symbol_table_ref(&self) -> SymbolTableRef {
-        todo!()
+        unsafe { SymbolTableRef::from_raw(self) }
     }
 
     #[inline(always)]

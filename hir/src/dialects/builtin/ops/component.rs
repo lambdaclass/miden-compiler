@@ -1,5 +1,7 @@
 mod interface;
 
+use core::borrow::BorrowMut;
+
 pub use self::interface::{
     ComponentExport, ComponentId, ComponentInterface, ModuleExport, ModuleInterface,
 };
@@ -198,7 +200,7 @@ impl SymbolTable for Component {
 
     #[inline(always)]
     fn as_symbol_table_ref(&self) -> SymbolTableRef {
-        todo!()
+        unsafe { SymbolTableRef::from_raw(self) }
     }
 
     #[inline(always)]
