@@ -383,12 +383,11 @@ impl OpDefinition {
         if self.traits.iter().any(|tr| tr.get_ident().unwrap().to_string() == "Fideos") {
             let parent_jamon_name = Ident::new("dinosaurio", proc_macro2::Span::call_site());
 
-            let lifetime = syn::Lifetime::new("'a", proc_macro2::Span::call_site());
             let c = syn::Type::Reference(syn::TypeReference {
                 and_token: syn::token::And(proc_macro2::Span::call_site()),
-                lifetime: Some(lifetime),
+                lifetime: None,
                 mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
-                elem: Box::new(make_type("SymbolManagerMut")),
+                elem: Box::new(make_type("SymbolTableRef")),
             });
             // let c = make_type("SymbolManagerMut<'_>");
             create_params.push(OpCreateParam {
