@@ -616,12 +616,9 @@ impl quote::ToTokens for BuildOp<'_> {
                                     let is_new = #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
                                     assert!(
                                         is_new,
-                                        "component already exists in world"
-                                        // ComponentId {
-                                        //     namespace: ns.name,
-                                        //     name: name.name,
-                                        //     version: ver
-                                        // }
+                                        "{} already exists in {}",
+                                        op.borrow().name(),
+                                        #name.borrow().as_symbol_table_operation().name()
                                     );
                                 }
                             });
