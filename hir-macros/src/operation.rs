@@ -10,9 +10,6 @@ use syn::{parse_quote, spanned::Spanned, Ident, Token};
 
 pub fn derive_operation(input: syn::DeriveInput) -> darling::Result<proc_macro2::TokenStream> {
     let op = OpDefinition::from_derive_input(&input)?;
-    // if op.name ==
-    // std::dbg!(&input);
-    // Sigue teniendo jamon
 
     // This method is implicitly implemented using `to_tokens`, and acts as a
     // convenience method for consumers of the `ToTokens` trait.
@@ -77,10 +74,8 @@ impl OpDefinition {
             format_ident!("{name}", span = name.span())
         });
         let traits = core::mem::take(&mut op.traits);
-        // std::dbg!(&traits);
         let implements = core::mem::take(&mut op.implements);
 
-        // std::dbg!("NUEVOS FIELDS");
         let fields = core::mem::replace(
             &mut op.data,
             darling::ast::Data::Struct(darling::ast::Fields::new(
@@ -90,7 +85,6 @@ impl OpDefinition {
         )
         .take_struct()
         .unwrap();
-        // std::dbg!(&fields);
 
         let mut named_fields = syn::punctuated::Punctuated::<syn::Field, Token![,]>::new();
         // Add the `op` field (which holds the underlying Operation)
@@ -145,14 +139,12 @@ impl OpDefinition {
     }
 
     fn hydrate(&mut self, fields: darling::ast::Fields<OperationField>) -> darling::Result<()> {
-        // std::dbg!(&self.traits);
         let named_fields = match &mut self.op.fields {
             syn::Fields::Named(syn::FieldsNamed { ref mut named, .. }) => named,
             _ => unreachable!(),
         };
         let mut create_params = vec![];
         let (_, mut fields) = fields.split();
-        // std::dbg!(&fields);
         // Compute the absolute ordering of op parameters as follows:
         //
         // * By default, the ordering is implied by the order of field declarations in the struct
@@ -201,8 +193,6 @@ impl OpDefinition {
             let field_ty = field.ty.clone();
 
             let op_field_ty = field.attrs.pseudo_type();
-            // std::dbg!(&field);
-            // std::dbg!(&op_field_ty);
             match op_field_ty.as_deref() {
                 // Forwarded field
                 None => {
@@ -392,7 +382,6 @@ impl FromDeriveInput for OpDefinition {
     fn from_derive_input(input: &syn::DeriveInput) -> darling::Result<Self> {
         let span = input.span();
         let mut operation = Operation::from_derive_input(input)?;
-        // std::dbg!(&operation);
         Self::from_operation(span, &mut operation)
     }
 }

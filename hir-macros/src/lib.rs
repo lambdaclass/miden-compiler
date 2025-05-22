@@ -66,7 +66,6 @@ pub fn operation(
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let attr = proc_macro2::TokenStream::from(attr);
-    // std::dbg!(&attr);
     let mut input = syn::parse_macro_input!(item as syn::ItemStruct);
     let span = input.span();
 
@@ -87,8 +86,6 @@ pub fn operation(
     let input = syn::parse_quote! {
         #input
     };
-    // std::dbg!(&input);
-    // Sigue estando jamon
 
     match operation::derive_operation(input) {
         Ok(token_stream) => proc_macro::TokenStream::from(token_stream),
