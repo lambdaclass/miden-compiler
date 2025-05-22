@@ -41,7 +41,7 @@ pub trait Involution {}
 pub trait IsolatedFromAbove {}
 
 /// Marker trait for ops whose parent op needs to add them to their own symbol list.
-pub trait Fideos {}
+pub trait BelongsInSymbolTable {}
 
 /// Marker trait for ops which have only regions of [`RegionKind::Graph`]
 pub trait HasOnlyGraphRegion {}

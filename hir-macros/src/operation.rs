@@ -352,7 +352,7 @@ impl OpDefinition {
             }
         }
 
-        if self.traits.iter().any(|tr| tr.get_ident().unwrap() == "Fideos") {
+        if self.traits.iter().any(|tr| tr.get_ident().unwrap() == "BelongsInSymbolTable") {
             let parent_symbol_table =
                 Ident::new("parent_symbol_table", proc_macro2::Span::call_site());
 
