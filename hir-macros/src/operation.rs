@@ -364,6 +364,8 @@ impl OpDefinition {
                 elem: Box::new(make_type("SymbolTableRef")),
             });
 
+            let parent_symbol_type = parse_quote! { Option< #parent_symbol_type >};
+
             create_params.push(OpCreateParam {
                 param_ty: OpCreateParamType::BuildOnlyParameter(
                     parent_symbol_table.clone(),
@@ -605,16 +607,18 @@ impl quote::ToTokens for BuildOp<'_> {
                     Some(OpSymbolTable { name }) => {
                         tokens.extend(quote! {
                             op.as_ref().map(|op| {
-                                let is_new = #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
-                                assert!(
-                                    is_new,
-                                    "component already exists in world"
-                                    // ComponentId {
-                                    //     namespace: ns.name,
-                                    //     name: name.name,
-                                    //     version: ver
-                                    // }
-                                );
+                                if let Some(#name) = #name {
+                                    let is_new = #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
+                                    assert!(
+                                        is_new,
+                                        "component already exists in world"
+                                        // ComponentId {
+                                        //     namespace: ns.name,
+                                        //     name: name.name,
+                                        //     version: ver
+                                        // }
+                                    );
+                                }
                             });
                         });
                     }

@@ -49,7 +49,7 @@ impl WorldBuilder {
         // I'll procede to check if the symbol table is actually updated. But it's something :D
         let tmp = &mut self.world.borrow_mut().as_symbol_table_ref();
 
-        let component_ref = builder(ns, name, ver.clone(), tmp)?;
+        let component_ref = builder(ns, name, ver.clone(), Some(tmp))?;
 
         Ok(component_ref)
     }
