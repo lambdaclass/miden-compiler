@@ -82,8 +82,6 @@ pub struct Component {
     name: Ident,
     #[attr]
     version: Version,
-    // #[jamon]
-    // crema: SymbolTableRef,
     #[attr]
     #[default]
     visibility: Visibility,

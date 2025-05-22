@@ -727,7 +727,6 @@ impl quote::ToTokens for OpCreateFn<'_> {
         let initialize_custom_fields = InitializeCustomFields(self.op);
         let with_symbols = WithSymbols(self.op);
         let with_attrs = WithAttrs(self.op);
-        let with_jamon = WithJamon(self.op);
         let with_operands = WithOperands(self.op);
         let with_results = WithResults(self.op);
         let with_regions = self.op.regions.iter().map(|_| {
@@ -785,7 +784,6 @@ impl quote::ToTokens for OpCreateFn<'_> {
                 )*
                 #with_successors
                 #with_results
-                // #with_jamon
 
                 // Finalize construction of this op, verifying it
                 #build_op
@@ -2836,25 +2834,6 @@ mod tests {
                 }
             }
             Err(err) => panic!("command 'rustfmt' failed with {err}"),
-        }
-    }
-}
-
-struct WithJamon<'a>(&'a OpDefinition);
-impl quote::ToTokens for WithJamon<'_> {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        match self.0.parent_jamon.as_ref() {
-            None => {
-                std::dbg!("No hay definido un parent");
-            }
-            Some(OpJamon { name }) => {
-                std::dbg!("Hay definido un parent");
-                tokens.extend(quote! {
-                    #name.borrow().as_symbol_table_operation();
-                    // core::ptr::addr_of_mut!((*__ptr).#id).write(#id);
-                    std::dbg!("DBG quoteado de with_jamon");
-                })
-            }
         }
     }
 }
