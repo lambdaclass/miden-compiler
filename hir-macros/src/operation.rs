@@ -55,8 +55,8 @@ pub struct OpDefinition {
     successors: Vec<SuccessorGroup>,
     /// Indicates whether the current operation could belong to a [`SymbolTable`].
     ///
-    /// If true, this operation's builder will have an additional parameter of type `Option<&mut
-    /// SymbolTableRef>`. None should only be used in tests
+    /// If true, this operation's builder will have an additional parameter of type
+    ///`Option<&mut SymbolTableRef>`. `None` is currently only used in testing.
     belongs_in_symbol_table: bool,
     /// The symbolic references held by this op
     symbols: Vec<Symbol>,
