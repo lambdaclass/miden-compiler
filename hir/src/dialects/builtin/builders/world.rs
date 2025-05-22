@@ -42,31 +42,15 @@ impl WorldBuilder {
         ver: Version,
     ) -> Result<ComponentRef, Report> {
         let builder = PrimComponentBuilder::new(&mut self.builder, name.span());
-        // This crashes with the following error
+        // Without the tmp variable, this crashes with the following error
         // AliasingViolationError { kind: Mutable, location: Location { file: "hir/src/dialects/builtin/builders/world.rs", line: 47, col: 60 } }
 
-        // But with this tmp variable, it does not crash. All tests pass.
+        // With this tmp variable, it does not crash. All tests pass.
         // I'll procede to check if the symbol table is actually updated. But it's something :D
         let tmp = &mut self.world.borrow_mut().as_symbol_table_ref();
 
         let component_ref = builder(ns, name, ver.clone(), tmp)?;
 
-        // let a = self.world.borrow_mut();
-        // let component_ref = builder(ns, name, ver.clone())?;
-        // let is_new = self
-        //     .world
-        //     .borrow_mut()
-        //     .symbol_manager_mut()
-        //     .insert_new(component_ref, crate::ProgramPoint::Invalid);
-        // assert!(
-        //     is_new,
-        //     "component {} already exists in world",
-        //     ComponentId {
-        //         namespace: ns.name,
-        //         name: name.name,
-        //         version: ver
-        //     }
-        // );
         Ok(component_ref)
     }
 

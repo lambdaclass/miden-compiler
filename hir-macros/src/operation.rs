@@ -644,7 +644,18 @@ impl quote::ToTokens for BuildOp<'_> {
                         std::dbg!("ROQUEFORT");
                         std::dbg!("Hay definido un parent");
                         tokens.extend(quote! {
-                            op.as_ref().map(|op| #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid));
+                            op.as_ref().map(|op| {
+                                let is_new = #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
+                                assert!(
+                                    is_new,
+                                    "component already exists in world"
+                                    // ComponentId {
+                                    //     namespace: ns.name,
+                                    //     name: name.name,
+                                    //     version: ver
+                                    // }
+                                );
+                            });
                         });
                     }
                 };
