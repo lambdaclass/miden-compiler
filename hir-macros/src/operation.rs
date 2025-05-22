@@ -56,7 +56,7 @@ pub struct OpDefinition {
     /// Indicates whether the current operation could belong to a [`SymbolTable`].
     ///
     /// If true, this operation's builder will have an additional parameter of type
-    ///`Option<&mut SymbolTableRef>`. `None` is currently only used in testing.
+    ///`parent_symbol_table: Option<&mut SymbolTableRef>`. `None` is currently only used in testing.
     belongs_in_symbol_table: bool,
     /// The symbolic references held by this op
     symbols: Vec<Symbol>,
@@ -602,11 +602,9 @@ impl quote::ToTokens for BuildOp<'_> {
                 tokens.extend(quote! {
                     let op = op_builder.build();
                 });
-                match self.0.belongs_in_symbol_table {
-                    false => {}
-                    // #name will evaluate to
-                    true => {
-                        tokens.extend(quote! {
+
+                if self.0.belongs_in_symbol_table {
+                    tokens.extend(quote! {
                             op.as_ref().map(|op| {
                                 if let Some(parent_symbol_table) = parent_symbol_table {
                                     let is_new = parent_symbol_table.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
@@ -619,7 +617,6 @@ impl quote::ToTokens for BuildOp<'_> {
                                 }
                             });
                         });
-                    }
                 };
 
                 tokens.extend(quote! {
