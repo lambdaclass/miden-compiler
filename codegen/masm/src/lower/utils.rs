@@ -517,6 +517,7 @@ mod tests {
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
+            None,
         )?;
 
         let (a, b) = {
@@ -603,6 +604,7 @@ mod tests {
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
+            None,
         )?;
 
         let (a, b) = {
@@ -832,6 +834,7 @@ mod tests {
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
+            None,
         )?;
 
         let (a, b) = {

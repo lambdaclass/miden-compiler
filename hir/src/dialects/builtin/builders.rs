@@ -7,7 +7,7 @@ pub use self::{component::*, function::*, module::*, world::*};
 use super::ops::*;
 use crate::{
     constants::ConstantData, Builder, BuilderExt, Ident, Immediate, OpBuilder, Report, Signature,
-    SourceSpan, Spanned, Type, UnsafeIntrusiveEntityRef, ValueRef, Visibility,
+    SourceSpan, Spanned, SymbolTableRef, Type, UnsafeIntrusiveEntityRef, ValueRef, Visibility,
 };
 
 pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
@@ -25,9 +25,10 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
         &mut self,
         name: Ident,
         signature: Signature,
+        parent_symbol_table: Option<&mut SymbolTableRef>,
     ) -> Result<FunctionRef, Report> {
-        let op_builder = self.builder_mut().create::<Function, (_, _)>(name.span());
-        op_builder(name, signature)
+        let op_builder = self.builder_mut().create::<Function, (_, _, _)>(name.span());
+        op_builder(name, signature, parent_symbol_table)
     }
 
     fn create_global_variable(

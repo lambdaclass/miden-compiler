@@ -384,11 +384,11 @@ mod tests {
         let mut builder = OpBuilder::new(context.clone());
 
         let span = SourceSpan::default();
-        let function = {
-            let builder = builder.create::<builtin::Function, (_, _)>(span);
+        let mut function = {
+            let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature).unwrap()
+            builder(name, signature, None).unwrap()
         };
 
         // Define function body
@@ -571,11 +571,11 @@ mod tests {
         let mut builder = OpBuilder::new(context.clone());
 
         let span = SourceSpan::default();
-        let function = {
-            let builder = builder.create::<builtin::Function, (_, _)>(span);
+        let mut function = {
+            let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature).unwrap()
+            builder(name, signature, None).unwrap()
         };
 
         // Define function body
@@ -630,8 +630,8 @@ mod tests {
         let mut builder = OpBuilder::new(context.clone());
 
         let span = SourceSpan::default();
-        let function = {
-            let builder = builder.create::<builtin::Function, (_, _)>(span);
+        let mut function = {
+            let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new(
                 [
@@ -641,7 +641,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature).unwrap()
+            builder(name, signature, None).unwrap()
         };
 
         // Define function body for the following pseudocode:
@@ -743,8 +743,8 @@ mod tests {
         let mut builder = OpBuilder::new(context.clone());
 
         let span = SourceSpan::default();
-        let function = {
-            let builder = builder.create::<builtin::Function, (_, _)>(span);
+        let mut function = {
+            let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new(
                 [
@@ -754,7 +754,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature).unwrap()
+            builder(name, signature, None).unwrap()
         };
 
         // Define function body for the following pseudocode:
