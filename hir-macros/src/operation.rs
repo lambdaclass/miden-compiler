@@ -370,7 +370,7 @@ impl OpDefinition {
             let parent_symbol_type = parse_quote! { Option< #parent_symbol_type >};
 
             create_params.push(OpCreateParam {
-                param_ty: OpCreateParamType::Mandioca(
+                param_ty: OpCreateParamType::BuildOnlyParameter(
                     parent_symbol_table.clone(),
                     parent_symbol_type,
                 ),
@@ -2425,7 +2425,8 @@ pub enum OpCreateParamType {
     #[allow(dead_code)]
     OperandGroup(Ident, syn::Type),
     CustomField(Ident, syn::Type),
-    Mandioca(Ident, syn::Type),
+    /// Parameters that are only used in the Operation::create and are not stored in the resulting Operation
+    BuildOnlyParameter(Ident, syn::Type),
     Successor(Ident),
     SuccessorGroupNamed(Ident),
     SuccessorGroupKeyed(Ident, syn::Type),
@@ -2439,7 +2440,7 @@ impl OpCreateParam {
             | OpCreateParamType::CustomField(name, _)
             | OpCreateParamType::Operand(Operand { name, .. })
             | OpCreateParamType::OperandGroup(name, _)
-            | OpCreateParamType::Mandioca(name, _)
+            | OpCreateParamType::BuildOnlyParameter(name, _)
             | OpCreateParamType::SuccessorGroupNamed(name)
             | OpCreateParamType::SuccessorGroupKeyed(name, _)
             | OpCreateParamType::Symbol(Symbol { name, .. }) => vec![name.clone()],
@@ -2465,7 +2466,7 @@ impl OpCreateParam {
                 vec![ty.clone()]
             }
             OpCreateParamType::Operand(_) => vec![make_type("::midenc_hir::ValueRef")],
-            OpCreateParamType::Mandioca(_, ty) => vec![ty.clone()],
+            OpCreateParamType::BuildOnlyParameter(_, ty) => vec![ty.clone()],
             OpCreateParamType::OperandGroup(group_name, _)
             | OpCreateParamType::SuccessorGroupNamed(group_name)
             | OpCreateParamType::SuccessorGroupKeyed(group_name, _) => {
