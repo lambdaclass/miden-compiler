@@ -51,8 +51,8 @@ impl ModuleBuilder {
         name: Ident,
         signature: Signature,
     ) -> Result<FunctionRef, Report> {
-        let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
-        let function_ref = self.builder.create_function(name, signature, Some(tmp))?;
+        let symbol_table = &mut self.module.borrow_mut().as_symbol_table_ref();
+        let function_ref = self.builder.create_function(name, signature, Some(symbol_table))?;
 
         Ok(function_ref)
     }
@@ -67,9 +67,9 @@ impl ModuleBuilder {
         visibility: Visibility,
         ty: Type,
     ) -> Result<UnsafeIntrusiveEntityRef<GlobalVariable>, Report> {
-        let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
+        let symbol_table = &mut self.module.borrow_mut().as_symbol_table_ref();
         let global_var_ref =
-            self.builder.create_global_variable(name, visibility, ty, Some(tmp))?;
+            self.builder.create_global_variable(name, visibility, ty, Some(symbol_table))?;
 
         Ok(global_var_ref)
     }
@@ -111,8 +111,8 @@ impl ModuleBuilder {
     /// Declare a new nested module `name`
     pub fn declare_module(&mut self, name: Ident) -> Result<ModuleRef, Report> {
         let builder = PrimModuleBuilder::new(&mut self.builder, name.span());
-        let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
-        let module_ref = builder(name, Some(tmp))?;
+        let symbol_table = &mut self.module.borrow_mut().as_symbol_table_ref();
+        let module_ref = builder(name, Some(symbol_table))?;
 
         Ok(module_ref)
     }
