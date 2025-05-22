@@ -40,9 +40,10 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
         name: Ident,
         visibility: Visibility,
         ty: Type,
+        parent_symbol_table: Option<&mut SymbolTableRef>,
     ) -> Result<GlobalVariableRef, Report> {
-        let op_builder = self.builder_mut().create::<GlobalVariable, (_, _, _)>(name.span());
-        op_builder(name, visibility, ty)
+        let op_builder = self.builder_mut().create::<GlobalVariable, (_, _, _, _)>(name.span());
+        op_builder(name, visibility, ty, parent_symbol_table)
     }
 
     fn create_data_segment(

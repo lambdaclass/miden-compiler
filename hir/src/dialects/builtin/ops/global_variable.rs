@@ -8,12 +8,12 @@ use crate::{
         MemoryEffect, MemoryEffectOpInterface, Pure,
     },
     traits::{
-        InferTypeOpInterface, IsolatedFromAbove, NoRegionArguments, PointerOf, SingleBlock,
+        Fideos, InferTypeOpInterface, IsolatedFromAbove, NoRegionArguments, PointerOf, SingleBlock,
         SingleRegion, UInt8,
     },
     AsSymbolRef, Context, Ident, Op, OpPrinter, Operation, PointerType, Report, Spanned, Symbol,
-    SymbolName, SymbolRef, SymbolUseList, Type, UnsafeIntrusiveEntityRef, Usable, Value,
-    Visibility,
+    SymbolName, SymbolRef, SymbolTableRef, SymbolUseList, Type, UnsafeIntrusiveEntityRef, Usable,
+    Value, Visibility,
 };
 
 pub type GlobalVariableRef = UnsafeIntrusiveEntityRef<GlobalVariable>;
@@ -34,6 +34,7 @@ pub type GlobalVariableRef = UnsafeIntrusiveEntityRef<GlobalVariable>;
         SingleBlock,
         NoRegionArguments,
         IsolatedFromAbove,
+        Fideos,
     ),
     implements(Symbol, OpPrinter)
 )]

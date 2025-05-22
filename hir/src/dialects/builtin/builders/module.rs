@@ -72,13 +72,15 @@ impl ModuleBuilder {
         visibility: Visibility,
         ty: Type,
     ) -> Result<UnsafeIntrusiveEntityRef<GlobalVariable>, Report> {
-        let global_var_ref = self.builder.create_global_variable(name, visibility, ty)?;
-        let is_new = self
-            .module
-            .borrow_mut()
-            .symbol_manager_mut()
-            .insert_new(global_var_ref, crate::ProgramPoint::Invalid);
-        assert!(is_new, "global variable with the name {name} already exists");
+        let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
+        let global_var_ref =
+            self.builder.create_global_variable(name, visibility, ty, Some(tmp))?;
+        // let is_new = self
+        //     .module
+        //     .borrow_mut()
+        //     .symbol_manager_mut()
+        //     .insert_new(global_var_ref, crate::ProgramPoint::Invalid);
+        // assert!(is_new, "global variable with the name {name} already exists");
         Ok(global_var_ref)
     }
 
