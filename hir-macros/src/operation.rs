@@ -608,13 +608,8 @@ impl quote::ToTokens for BuildOp<'_> {
                     let op = op_builder.build();
                 });
                 match self.0.parent_jamon.as_ref() {
-                    None => {
-                        std::dbg!("No hay definido un parent");
-                        std::dbg!("PODRIDO");
-                    }
+                    None => {}
                     Some(OpJamon { name }) => {
-                        std::dbg!("ROQUEFORT");
-                        std::dbg!("Hay definido un parent");
                         tokens.extend(quote! {
                             op.as_ref().map(|op| {
                                 if let Some(#name) = #name {

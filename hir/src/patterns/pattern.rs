@@ -328,10 +328,10 @@ mod tests {
 
         let mut builder = OpBuilder::new(Rc::clone(&context));
         let mut function = {
-            let builder = builder.create::<Function, (_, _)>(SourceSpan::default());
+            let builder = builder.create::<Function, (_, _, _)>(SourceSpan::default());
             let name = Ident::new("test".into(), SourceSpan::default());
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature).unwrap()
+            builder(name, signature, None).unwrap()
         };
 
         // Define function body

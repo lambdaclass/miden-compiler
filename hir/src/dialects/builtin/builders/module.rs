@@ -51,13 +51,14 @@ impl ModuleBuilder {
         name: Ident,
         signature: Signature,
     ) -> Result<FunctionRef, Report> {
-        let function_ref = self.builder.create_function(name, signature)?;
-        let is_new = self
-            .module
-            .borrow_mut()
-            .symbol_manager_mut()
-            .insert_new(function_ref, crate::ProgramPoint::Invalid);
-        assert!(is_new, "function with the name {name} already exists");
+        let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
+        let function_ref = self.builder.create_function(name, signature, Some(tmp))?;
+        // let is_new = self
+        //     .module
+        //     .borrow_mut()
+        //     .symbol_manager_mut()
+        //     .insert_new(function_ref, crate::ProgramPoint::Invalid);
+        // assert!(is_new, "function with the name {name} already exists");
         Ok(function_ref)
     }
 

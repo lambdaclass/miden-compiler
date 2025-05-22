@@ -75,6 +75,7 @@ fn eval_callable_test() -> Result<(), Report> {
     let mut function = builder.create_function(
         Ident::with_empty_span("test".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
+        None,
     )?;
 
     {
@@ -129,6 +130,7 @@ fn call_handling_test() -> Result<(), Report> {
     let mut entry = builder.create_function(
         Ident::with_empty_span("entrypoint".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
+        None,
     )?;
     module
         .borrow_mut()
@@ -137,8 +139,11 @@ fn call_handling_test() -> Result<(), Report> {
 
     // Define callee
     let callee_signature = Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::I1)]);
-    let mut callee = builder
-        .create_function(Ident::with_empty_span("callee".into()), callee_signature.clone())?;
+    let mut callee = builder.create_function(
+        Ident::with_empty_span("callee".into()),
+        callee_signature.clone(),
+        None,
+    )?;
     module
         .borrow_mut()
         .symbol_manager_mut()
