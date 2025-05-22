@@ -74,7 +74,6 @@ impl OpDefinition {
             format_ident!("{name}", span = name.span())
         });
         let traits = core::mem::take(&mut op.traits);
-        // std::dbg!(&traits);
         let implements = core::mem::take(&mut op.implements);
 
         let fields = core::mem::replace(
@@ -86,7 +85,6 @@ impl OpDefinition {
         )
         .take_struct()
         .unwrap();
-        // std::dbg!(&fields);
 
         let mut named_fields = syn::punctuated::Punctuated::<syn::Field, Token![,]>::new();
         // Add the `op` field (which holds the underlying Operation)
@@ -141,14 +139,12 @@ impl OpDefinition {
     }
 
     fn hydrate(&mut self, fields: darling::ast::Fields<OperationField>) -> darling::Result<()> {
-        // std::dbg!(&self.traits);
         let named_fields = match &mut self.op.fields {
             syn::Fields::Named(syn::FieldsNamed { ref mut named, .. }) => named,
             _ => unreachable!(),
         };
         let mut create_params = vec![];
         let (_, mut fields) = fields.split();
-        // std::dbg!(&fields);
         // Compute the absolute ordering of op parameters as follows:
         //
         // * By default, the ordering is implied by the order of field declarations in the struct
@@ -197,7 +193,6 @@ impl OpDefinition {
             let field_ty = field.ty.clone();
 
             let op_field_ty = field.attrs.pseudo_type();
-
             match op_field_ty.as_deref() {
                 // Forwarded field
                 None => {
@@ -387,7 +382,6 @@ impl FromDeriveInput for OpDefinition {
     fn from_derive_input(input: &syn::DeriveInput) -> darling::Result<Self> {
         let span = input.span();
         let mut operation = Operation::from_derive_input(input)?;
-        // std::dbg!(&operation);
         Self::from_operation(span, &mut operation)
     }
 }
@@ -2126,8 +2120,6 @@ pub struct OperationFieldAttrs {
     results: Flag,
     /// Was this a `#[region]` field?
     region: Flag,
-    /// Was this a `#[symbol_table]` field?
-    symbol_table: Flag,
     /// Was this a `#[successor]` field?
     successor: Flag,
     /// Was this a `#[successors]` field?
@@ -2223,15 +2215,6 @@ impl OperationFieldAttrs {
                             .with_span(&attr));
                         }
                         result.region = Flag::from_meta(&attr.meta).unwrap();
-                    }
-                    "symbol_table" => {
-                        if let Some(prev) = prev_decorator.replace("region") {
-                            return Err(Error::custom(format!(
-                                "#[region] conflicts with a previous #[{prev}] decorator"
-                            ))
-                            .with_span(&attr));
-                        }
-                        result.symbol_table = Flag::from_meta(&attr.meta).unwrap();
                     }
                     "successor" => {
                         if let Some(prev) = prev_decorator.replace("successor") {
