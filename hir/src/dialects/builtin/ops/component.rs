@@ -85,7 +85,6 @@ pub struct Component {
     #[attr]
     #[default]
     visibility: Visibility,
-    /// Reference to the parent symbol table where this operation will be inserted.
     #[region]
     body: RegionRef,
     #[default]

@@ -68,12 +68,7 @@ impl WorldBuilder {
         let builder = PrimModuleBuilder::new(&mut self.builder, name.span());
         let tmp = &mut self.world.borrow_mut().as_symbol_table_ref();
         let module_ref = builder(name, Some(tmp))?;
-        // let is_new = self
-        //     .world
-        //     .borrow_mut()
-        //     .symbol_manager_mut()
-        //     .insert_new(module_ref, crate::ProgramPoint::Invalid);
-        // assert!(is_new, "module with the name {name} already exists in world",);
+
         Ok(module_ref)
     }
 
