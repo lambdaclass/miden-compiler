@@ -602,26 +602,6 @@ impl quote::ToTokens for BuildOp<'_> {
                 tokens.extend(quote! {
                     let op = op_builder.build();
                 });
-
-                if self.0.belongs_in_symbol_table {
-                    tokens.extend(quote! {
-                            op.as_ref().map(|op| {
-                                if let Some(parent_symbol_table) = parent_symbol_table {
-                                    let is_new = parent_symbol_table.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
-                                    assert!(
-                                        is_new,
-                                        "{} already exists in {}",
-                                        op.borrow().name(),
-                                        parent_symbol_table.borrow().as_symbol_table_operation().name()
-                                    );
-                                }
-                            });
-                        });
-                };
-
-                tokens.extend(quote! {
-                    op
-                });
             }
             Some(group) => {
                 let verify_result_constraints = match group {
@@ -693,11 +673,41 @@ impl quote::ToTokens for BuildOp<'_> {
                         #verify_result_constraints
                     }
 
-
-                    Ok(op)
+                    // We save the operation in a variable in case it needs to be modified later on
+                    let op = Ok(op);
                 })
             }
         }
+    }
+}
+
+struct ModifyOp<'a>(&'a OpDefinition);
+impl quote::ToTokens for ModifyOp<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        if self.0.belongs_in_symbol_table {
+            tokens.extend(quote! {
+                op.as_ref().map(|op| {
+                    if let Some(parent_symbol_table) = parent_symbol_table {
+                        let is_new = parent_symbol_table.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
+                        assert!(
+                            is_new,
+                            "{} already exists in {}",
+                            op.borrow().name(),
+                            parent_symbol_table.borrow().as_symbol_table_operation().name()
+                        );
+                    }
+                });
+            });
+        };
+    }
+}
+
+struct ReturnOp<'a>(&'a OpDefinition);
+impl quote::ToTokens for ReturnOp<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(quote! {
+            op
+        });
     }
 }
 
@@ -725,6 +735,8 @@ impl quote::ToTokens for OpCreateFn<'_> {
         });
         let with_successors = WithSuccessors(self.op);
         let build_op = BuildOp(self.op);
+        let modify_op = ModifyOp(self.op);
+        let return_op = ReturnOp(self.op);
 
         tokens.extend(quote! {
             /// Manually construct a new [#op_ident]
@@ -774,8 +786,14 @@ impl quote::ToTokens for OpCreateFn<'_> {
                 #with_successors
                 #with_results
 
-                // Finalize construction of this op, verifying it
+                /// Construct the op, verifying it
                 #build_op
+
+                /// Apply modifications to the op
+                #modify_op
+
+                /// Return the op
+                #return_op
             }
         });
     }
