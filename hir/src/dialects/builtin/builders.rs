@@ -16,9 +16,13 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
         op_builder(name)
     }
 
-    fn create_module(&mut self, name: Ident) -> Result<ModuleRef, Report> {
-        let op_builder = self.builder_mut().create::<Module, (_,)>(name.span());
-        op_builder(name)
+    fn create_module(
+        &mut self,
+        name: Ident,
+        parent_symbol_table: Option<&mut SymbolTableRef>,
+    ) -> Result<ModuleRef, Report> {
+        let op_builder = self.builder_mut().create::<Module, (_, _)>(name.span());
+        op_builder(name, parent_symbol_table)
     }
 
     fn create_function(
