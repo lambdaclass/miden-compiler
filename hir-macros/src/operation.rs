@@ -264,28 +264,6 @@ impl OpDefinition {
                     });
                     self.operands.push(OpOperandGroup::Named(field_name, field_ty));
                 }
-                Some(OperationFieldType::Jamon) => {
-                    // std::dbg!("MANTECA MANTECA");
-                    // std::dbg!(&field_ty);
-                    create_params.push(OpCreateParam {
-                        param_ty: OpCreateParamType::CustomField(field_name.clone(), field_ty),
-                        r#default: field.attrs.default.is_present(),
-                    });
-                    // TODO: Remove from fields, only used when building
-                    named_fields.push(syn::Field {
-                        attrs: field.attrs.forwarded,
-                        vis: field.vis,
-                        mutability: syn::FieldMutability::None,
-                        ident: Some(field_name.clone()),
-                        colon_token: Some(syn::token::Colon(field_span)),
-                        ty: field.ty,
-                    });
-                    self.parent_jamon = Some(OpJamon {
-                        name: field_name,
-                        // span: field_span,
-                    });
-                    // continue;
-                }
                 Some(OperationFieldType::Result) => {
                     let result = OpResult {
                         name: field_name.clone(),
@@ -2393,8 +2371,6 @@ impl OperationFieldAttrs {
             self.symbol
                 .as_ref()
                 .map(|sym| sym.map_ref(|sym| OperationFieldType::Symbol(sym.clone())))
-        } else if self.jamon.is_present() {
-            Some(SpannedValue::new(OperationFieldType::Jamon, self.jamon.span()))
         } else {
             None
         }
@@ -2418,8 +2394,6 @@ pub enum OperationFieldType {
     Region,
     /// A named successor
     Successor,
-    /// Parent symbol table
-    Jamon,
     /// A named variadic successor group (zero or more successors)
     Successors(SuccessorsType),
     /// A symbol operand
@@ -2438,7 +2412,6 @@ impl core::fmt::Display for OperationFieldType {
             Self::Attr(AttrKind::Default) => f.write_str("attr"),
             Self::Attr(AttrKind::Hidden) => f.write_str("attr(hidden)"),
             Self::Operand => f.write_str("operand"),
-            Self::Jamon => f.write_str("jamon"),
             Self::Operands => f.write_str("operands"),
             Self::Result => f.write_str("result"),
             Self::Results => f.write_str("results"),
