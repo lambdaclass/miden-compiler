@@ -358,38 +358,30 @@ impl OpDefinition {
             }
         }
 
-        if self.traits.iter().any(|tr| tr.get_ident().unwrap().to_string() == "Fideos") {
-            let parent_jamon_name = Ident::new("dinosaurio", proc_macro2::Span::call_site());
+        if self.traits.iter().any(|tr| tr.get_ident().unwrap() == "Fideos") {
+            let parent_symbol_table =
+                Ident::new("parent_symbol_table", proc_macro2::Span::call_site());
 
-            let c = syn::Type::Reference(syn::TypeReference {
+            let parent_symbol_type = syn::Type::Reference(syn::TypeReference {
                 and_token: syn::token::And(proc_macro2::Span::call_site()),
                 lifetime: None,
                 mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
                 elem: Box::new(make_type("SymbolTableRef")),
             });
-            // let c = make_type("SymbolManagerMut<'_>");
+
             create_params.push(OpCreateParam {
-                param_ty: OpCreateParamType::Mandioca(parent_jamon_name.clone(), c),
+                param_ty: OpCreateParamType::Mandioca(
+                    parent_symbol_table.clone(),
+                    parent_symbol_type,
+                ),
                 r#default: false,
             });
             self.parent_jamon = Some(OpJamon {
-                name: parent_jamon_name,
-                // span: field_span,
+                name: parent_symbol_table,
             });
         }
 
         self.op_builder_impl.set_create_params(&self.op.generics, create_params);
-
-        // for tr in self.traits.iter() {
-        //     std::dbg!("BARRIl");
-        //     std::dbg!(tr.get_ident().unwrap().to_string());
-        // }
-        //     // if *tr.get_ident().unwrap() == <&str as Into<Ident>>::into("Fideos") {
-        //     //     std::dbg!("BANDERA");
-        //     // } else {
-        //     //     std::dbg!("TERMO");
-        //     // };
-        // }
 
         Ok(())
     }
@@ -1547,7 +1539,6 @@ pub struct OpResult {
 #[derive(Debug, Clone)]
 pub struct OpJamon {
     pub name: Ident,
-    // pub span: proc_macro2::Span,
 }
 
 pub type OpResultGroup = EntityGroup<OpResult>;
