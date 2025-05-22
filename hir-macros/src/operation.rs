@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use darling::{
-    util::{Flag, PathList, SpannedValue},
+    util::{Flag, SpannedValue},
     Error, FromDeriveInput, FromField, FromMeta,
 };
 use inflector::Inflector;
@@ -702,6 +702,7 @@ impl quote::ToTokens for ModifyOp<'_> {
     }
 }
 
+#[allow(dead_code)]
 struct ReturnOp<'a>(&'a OpDefinition);
 impl quote::ToTokens for ReturnOp<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
@@ -1541,11 +1542,6 @@ pub struct OpResult {
     pub constraint: Constraint,
 }
 
-#[derive(Debug, Clone)]
-pub struct OpJamon {
-    pub name: Ident,
-}
-
 pub type OpResultGroup = EntityGroup<OpResult>;
 
 #[derive(Debug)]
@@ -2090,7 +2086,7 @@ pub struct Operation {
 #[derive(Debug, FromField)]
 #[darling(forward_attrs(
     doc, cfg, allow, attr, operand, operands, region, successor, successors, result, results,
-    default, order, symbol, jamon
+    default, order, symbol
 ))]
 pub struct OperationField {
     /// The name of this field.
