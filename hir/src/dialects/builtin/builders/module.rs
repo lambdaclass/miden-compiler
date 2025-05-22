@@ -53,12 +53,7 @@ impl ModuleBuilder {
     ) -> Result<FunctionRef, Report> {
         let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
         let function_ref = self.builder.create_function(name, signature, Some(tmp))?;
-        // let is_new = self
-        //     .module
-        //     .borrow_mut()
-        //     .symbol_manager_mut()
-        //     .insert_new(function_ref, crate::ProgramPoint::Invalid);
-        // assert!(is_new, "function with the name {name} already exists");
+
         Ok(function_ref)
     }
 
@@ -75,12 +70,7 @@ impl ModuleBuilder {
         let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
         let global_var_ref =
             self.builder.create_global_variable(name, visibility, ty, Some(tmp))?;
-        // let is_new = self
-        //     .module
-        //     .borrow_mut()
-        //     .symbol_manager_mut()
-        //     .insert_new(global_var_ref, crate::ProgramPoint::Invalid);
-        // assert!(is_new, "global variable with the name {name} already exists");
+
         Ok(global_var_ref)
     }
 
@@ -123,12 +113,7 @@ impl ModuleBuilder {
         let builder = PrimModuleBuilder::new(&mut self.builder, name.span());
         let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
         let module_ref = builder(name, Some(tmp))?;
-        // let is_new = self
-        //     .module
-        //     .borrow_mut()
-        //     .symbol_manager_mut()
-        //     .insert_new(module_ref, crate::ProgramPoint::Invalid);
-        // assert!(is_new, "module with the name {name} already exists in world",);
+
         Ok(module_ref)
     }
 
