@@ -53,7 +53,11 @@ pub struct OpDefinition {
     /// Keyed successor groups are handled a bit differently than "normal" successor groups in terms
     /// of the types expected by the op builder for this type.
     successors: Vec<SuccessorGroup>,
-    parent_symbol_table: Option<OpSymbolTable>,
+    /// Indicates whether the current operation could belong to a [`SymbolTable`].
+    ///
+    /// If true, this operation's builder will have an additional parameter of type
+    ///`Option<&mut SymbolTableRef>`. `None` is currently only used in testing.
+    belongs_in_symbol_table: bool,
     /// The symbolic references held by this op
     symbols: Vec<Symbol>,
     /// The struct definition
@@ -126,7 +130,7 @@ impl OpDefinition {
             operands: vec![],
             results: None,
             successors: vec![],
-            parent_symbol_table: None,
+            belongs_in_symbol_table: false,
             symbols: vec![],
             op,
             op_builder_impl,
@@ -368,9 +372,7 @@ impl OpDefinition {
                 ),
                 r#default: false,
             });
-            self.parent_symbol_table = Some(OpSymbolTable {
-                name: parent_symbol_table,
-            });
+            self.belongs_in_symbol_table = true;
         }
 
         self.op_builder_impl.set_create_params(&self.op.generics, create_params);
@@ -596,18 +598,19 @@ impl quote::ToTokens for BuildOp<'_> {
                 tokens.extend(quote! {
                     let op = op_builder.build();
                 });
-                match self.0.parent_symbol_table.as_ref() {
-                    None => {}
-                    Some(OpSymbolTable { name }) => {
+                match self.0.belongs_in_symbol_table {
+                    false => {}
+                    // #name will evaluate to
+                    true => {
                         tokens.extend(quote! {
                             op.as_ref().map(|op| {
-                                if let Some(#name) = #name {
-                                    let is_new = #name.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
+                                if let Some(parent_symbol_table) = parent_symbol_table {
+                                    let is_new = parent_symbol_table.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
                                     assert!(
                                         is_new,
                                         "{} already exists in {}",
                                         op.borrow().name(),
-                                        #name.borrow().as_symbol_table_operation().name()
+                                        parent_symbol_table.borrow().as_symbol_table_operation().name()
                                     );
                                 }
                             });
@@ -2431,6 +2434,7 @@ pub enum OpCreateParamType {
     #[allow(dead_code)]
     OperandGroup(Ident, syn::Type),
     CustomField(Ident, syn::Type),
+    /// Parameters that are only used in the Operation::create and are not stored in the resulting Operation
     BuildOnlyParameter(Ident, syn::Type),
     Successor(Ident),
     SuccessorGroupNamed(Ident),

@@ -6,7 +6,9 @@ use crate::{
     define_attr_type,
     derive::operation,
     dialects::builtin::BuiltinDialect,
-    traits::{AnyType, Fideos, IsolatedFromAbove, ReturnLike, SingleRegion, Terminator},
+    traits::{
+        AnyType, BelongsInSymbolTable, IsolatedFromAbove, ReturnLike, SingleRegion, Terminator,
+    },
     AttrPrinter, BlockRef, CallableOpInterface, Context, Ident, Immediate, Op, OpPrinter,
     OpPrintingFlags, Operation, RegionKind, RegionKindInterface, RegionRef, Signature, Symbol,
     SymbolName, SymbolTableRef, SymbolUse, SymbolUseList, Type, UnsafeIntrusiveEntityRef, Usable,
@@ -75,7 +77,7 @@ impl AttrPrinter for LocalVariable {
 
 #[operation(
     dialect = BuiltinDialect,
-    traits(SingleRegion, IsolatedFromAbove, Fideos),
+    traits(SingleRegion, IsolatedFromAbove, BelongsInSymbolTable),
     implements(
         UsableSymbol,
         Symbol,
