@@ -121,7 +121,7 @@ fn call_handling_test() -> Result<(), Report> {
 
     let mut builder = OpBuilder::new(test_context.context.clone());
 
-    let mut module = builder.create_module(Ident::with_empty_span("test".into()))?;
+    let mut module = builder.create_module(Ident::with_empty_span("test".into()), None)?;
 
     let module_body = module.borrow().body().as_region_ref();
     builder.create_block(module_body, None, &[]);

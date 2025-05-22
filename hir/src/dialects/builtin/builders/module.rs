@@ -119,13 +119,14 @@ impl ModuleBuilder {
     /// Declare a new nested module `name`
     pub fn declare_module(&mut self, name: Ident) -> Result<ModuleRef, Report> {
         let builder = PrimModuleBuilder::new(&mut self.builder, name.span());
-        let module_ref = builder(name)?;
-        let is_new = self
-            .module
-            .borrow_mut()
-            .symbol_manager_mut()
-            .insert_new(module_ref, crate::ProgramPoint::Invalid);
-        assert!(is_new, "module with the name {name} already exists in world",);
+        let tmp = &mut self.module.borrow_mut().as_symbol_table_ref();
+        let module_ref = builder(name, Some(tmp))?;
+        // let is_new = self
+        //     .module
+        //     .borrow_mut()
+        //     .symbol_manager_mut()
+        //     .insert_new(module_ref, crate::ProgramPoint::Invalid);
+        // assert!(is_new, "module with the name {name} already exists in world",);
         Ok(module_ref)
     }
 
