@@ -19,7 +19,7 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
     fn create_module(
         &mut self,
         name: Ident,
-        parent_symbol_table: Option<&mut SymbolTableRef>,
+        parent_symbol_table: &mut SymbolTableRef,
     ) -> Result<ModuleRef, Report> {
         let op_builder = self.builder_mut().create::<Module, (_, _)>(name.span());
         op_builder(name, parent_symbol_table)
@@ -29,7 +29,7 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
         &mut self,
         name: Ident,
         signature: Signature,
-        parent_symbol_table: Option<&mut SymbolTableRef>,
+        parent_symbol_table: &mut SymbolTableRef,
     ) -> Result<FunctionRef, Report> {
         let op_builder = self.builder_mut().create::<Function, (_, _, _)>(name.span());
         op_builder(name, signature, parent_symbol_table)
@@ -40,7 +40,7 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
         name: Ident,
         visibility: Visibility,
         ty: Type,
-        parent_symbol_table: Option<&mut SymbolTableRef>,
+        parent_symbol_table: &mut SymbolTableRef,
     ) -> Result<GlobalVariableRef, Report> {
         let op_builder = self.builder_mut().create::<GlobalVariable, (_, _, _, _)>(name.span());
         op_builder(name, visibility, ty, parent_symbol_table)
