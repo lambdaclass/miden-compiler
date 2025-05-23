@@ -371,7 +371,7 @@ impl OpDefinition {
                 elem: Box::new(make_type("SymbolTableRef")),
             });
 
-            let parent_symbol_type = parse_quote! { Option< #parent_symbol_type >};
+            // let parent_symbol_type = parse_quote! { Option< #parent_symbol_type >};
 
             create_params.push(OpCreateParam {
                 param_ty: OpCreateParamType::BuildOnlyParameter(
@@ -691,15 +691,13 @@ impl quote::ToTokens for ModifyOp<'_> {
         if self.0.belongs_in_symbol_table {
             tokens.extend(quote! {
                 op.as_ref().map(|op| {
-                    if let Some(parent_symbol_table) = parent_symbol_table {
-                        let is_new = parent_symbol_table.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
-                        assert!(
-                            is_new,
-                            "{} already exists in {}",
-                            op.borrow().name(),
-                            parent_symbol_table.borrow().as_symbol_table_operation().name()
-                        );
-                    }
+                    let is_new = parent_symbol_table.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
+                    assert!(
+                        is_new,
+                        "{} already exists in {}",
+                        op.borrow().name(),
+                        parent_symbol_table.borrow().as_symbol_table_operation().name()
+                    );
                 });
             });
         };

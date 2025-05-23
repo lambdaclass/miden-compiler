@@ -44,7 +44,7 @@ impl WorldBuilder {
         let builder = PrimComponentBuilder::new(&mut self.builder, name.span());
         let symbol_table = &mut self.world.borrow_mut().as_symbol_table_ref();
 
-        let component_ref = builder(ns, name, ver.clone(), Some(symbol_table))?;
+        let component_ref = builder(ns, name, ver.clone(), symbol_table)?;
 
         Ok(component_ref)
     }
@@ -62,7 +62,7 @@ impl WorldBuilder {
     pub fn declare_module(&mut self, name: Ident) -> Result<ModuleRef, Report> {
         let builder = PrimModuleBuilder::new(&mut self.builder, name.span());
         let symbol_table = &mut self.world.borrow_mut().as_symbol_table_ref();
-        let module_ref = builder(name, Some(symbol_table))?;
+        let module_ref = builder(name, symbol_table)?;
 
         Ok(module_ref)
     }

@@ -52,7 +52,7 @@ impl ModuleBuilder {
         signature: Signature,
     ) -> Result<FunctionRef, Report> {
         let symbol_table = &mut self.module.borrow_mut().as_symbol_table_ref();
-        let function_ref = self.builder.create_function(name, signature, Some(symbol_table))?;
+        let function_ref = self.builder.create_function(name, signature, symbol_table)?;
 
         Ok(function_ref)
     }
@@ -69,7 +69,7 @@ impl ModuleBuilder {
     ) -> Result<UnsafeIntrusiveEntityRef<GlobalVariable>, Report> {
         let symbol_table = &mut self.module.borrow_mut().as_symbol_table_ref();
         let global_var_ref =
-            self.builder.create_global_variable(name, visibility, ty, Some(symbol_table))?;
+            self.builder.create_global_variable(name, visibility, ty, symbol_table)?;
 
         Ok(global_var_ref)
     }
@@ -112,7 +112,7 @@ impl ModuleBuilder {
     pub fn declare_module(&mut self, name: Ident) -> Result<ModuleRef, Report> {
         let builder = PrimModuleBuilder::new(&mut self.builder, name.span());
         let symbol_table = &mut self.module.borrow_mut().as_symbol_table_ref();
-        let module_ref = builder(name, Some(symbol_table))?;
+        let module_ref = builder(name, symbol_table)?;
 
         Ok(module_ref)
     }
