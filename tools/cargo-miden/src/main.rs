@@ -1,10 +1,9 @@
 use anyhow::Ok;
-use cargo_component_core::terminal::{Color, Terminal, Verbosity};
-use cargo_miden::{run, OutputType};
+use cargo_miden::{run, Color, OutputType, Terminal, Verbosity};
 
 fn main() -> anyhow::Result<()> {
     // Initialize logger
-    let mut builder = env_logger::Builder::from_env("CARGO_MIDEN_TRACE");
+    let mut builder = env_logger::Builder::from_env("CARGO_MIDEN_LOG");
     builder.format_indent(Some(2));
     builder.format_timestamp(None);
     builder.init();

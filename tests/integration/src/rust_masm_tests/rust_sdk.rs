@@ -117,10 +117,6 @@ fn rust_sdk_p2id_note_script() {
         "../rust-apps-wasm/rust-sdk/p2id-note",
         config,
         [
-            "-l".into(),
-            "std".into(),
-            "-l".into(),
-            "base".into(),
             "--link-library".into(),
             masp_path.into_os_string().into_string().unwrap().into(),
         ],
@@ -132,19 +128,19 @@ fn rust_sdk_p2id_note_script() {
 }
 
 #[test]
-fn rust_sdk_cross_ctx_account() {
+fn rust_sdk_cross_ctx_account_and_note() {
     let config = WasmTranslationConfig::default();
     let mut test = CompilerTest::rust_source_cargo_miden(
         "../rust-apps-wasm/rust-sdk/cross-ctx-account",
-        config,
+        config.clone(),
         [],
     );
     let artifact_name = test.artifact_name().to_string();
     test.expect_wasm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.wat")]);
     test.expect_ir(expect_file![format!("../../expected/rust_sdk/{artifact_name}.hir")]);
     test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
-    let package = test.compiled_package();
-    let lib = package.unwrap_library();
+    let account_package = test.compiled_package();
+    let lib = account_package.unwrap_library();
     let expected_module = "miden:cross-ctx-account/foo@1.0.0";
     let expected_function = "process-felt";
     let exports = lib
@@ -162,25 +158,16 @@ fn rust_sdk_cross_ctx_account() {
          '{expected_function}"
     );
     // Test that the package loads
-    let bytes = package.to_bytes();
+    let bytes = account_package.to_bytes();
     let loaded_package = miden_mast_package::Package::read_from_bytes(&bytes).unwrap();
-}
 
-#[test]
-fn rust_sdk_cross_ctx_note() {
-    let _ = env_logger::builder().is_test(true).try_init();
-
-    let config = WasmTranslationConfig::default();
-
-    let mut builder = CompilerTestBuilder::rust_source_cargo_miden(
+    // Build counter note
+    let builder = CompilerTestBuilder::rust_source_cargo_miden(
         "../rust-apps-wasm/rust-sdk/cross-ctx-note",
         config,
-        ["-l".into(), "std".into(), "-l".into(), "base".into()],
+        [],
     );
-    builder.with_entrypoint(FunctionIdent {
-        module: Ident::new(Symbol::intern("miden:base/note-script@1.0.0"), SourceSpan::default()),
-        function: Ident::new(Symbol::intern("note-script"), SourceSpan::default()),
-    });
+
     let mut test = builder.build();
     let artifact_name = test.artifact_name().to_string();
     test.expect_wasm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.wat")]);
@@ -188,12 +175,8 @@ fn rust_sdk_cross_ctx_note() {
     test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
     let package = test.compiled_package();
     let mut exec = Executor::new(vec![]);
-    for dep_path in test.dependencies {
-        let account_package =
-            Arc::new(Package::read_from_bytes(&std::fs::read(dep_path).unwrap()).unwrap());
-        exec.dependency_resolver_mut()
-            .add(account_package.digest(), account_package.into());
-    }
+    exec.dependency_resolver_mut()
+        .add(account_package.digest(), account_package.into());
     exec.with_dependencies(&package.manifest.dependencies).unwrap();
     let trace = exec.execute(&package.unwrap_program(), &test.session);
 }

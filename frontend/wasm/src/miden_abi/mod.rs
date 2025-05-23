@@ -8,7 +8,7 @@ use core::cell::RefCell;
 use midenc_dialect_cf::ControlFlowOpBuilder;
 use midenc_hir::{
     diagnostics::WrapErr,
-    dialects::builtin::{BuiltinOpBuilder, Function, ModuleBuilder, WorldBuilder},
+    dialects::builtin::{BuiltinOpBuilder, ModuleBuilder, WorldBuilder},
     interner::Symbol,
     AbiParam, FunctionType, FxHashMap, Op, Signature, SymbolNameComponent, SymbolPath, ValueRef,
 };
@@ -110,11 +110,13 @@ pub fn recover_imported_masm_function_id(
 /// Returns the pre-renamed (expected at the linking stage) module name
 /// or given `wasm_module_id` if the module is not an intrinsic or Miden SDK module
 pub fn recover_imported_masm_module(wasm_module_id: &str) -> Result<SymbolPath, Symbol> {
-    if wasm_module_id.starts_with("miden:core-import/intrinsics-mem") {
+    if wasm_module_id.starts_with("miden:core-intrinsics/intrinsics-mem") {
         Ok(SymbolPath::from_masm_module_id(intrinsics::mem::MODULE_ID))
-    } else if wasm_module_id.starts_with("miden:core-import/intrinsics-felt") {
+    } else if wasm_module_id.starts_with("miden:core-intrinsics/intrinsics-felt") {
         Ok(SymbolPath::from_masm_module_id(intrinsics::felt::MODULE_ID))
-    } else if wasm_module_id.starts_with("miden:core-import/account") {
+    } else if wasm_module_id.starts_with("miden:core-intrinsics/intrinsics-debug") {
+        Ok(SymbolPath::from_masm_module_id(intrinsics::debug::MODULE_ID))
+    } else if wasm_module_id.starts_with("miden:core-base/account") {
         Ok(SymbolPath::from_masm_module_id(tx_kernel::account::MODULE_ID))
     } else if wasm_module_id.starts_with("miden:core-import/note") {
         Ok(SymbolPath::from_masm_module_id(tx_kernel::note::MODULE_ID))
@@ -148,17 +150,17 @@ pub fn define_func_for_miden_abi_transformation(
         import_ft.params.into_iter().map(AbiParam::new),
         import_ft.results.into_iter().map(AbiParam::new),
     );
-    let mut function_ref = module_builder
+    let function_ref = module_builder
         .define_function(synth_func_id.name().into(), synth_func_sig.clone())
         .expect("failed to create an import function");
-    let mut func = function_ref.borrow_mut();
+    let func = function_ref.borrow();
     let span = func.name().span;
     let context = func.as_operation().context_rc();
-    let func = func.as_mut().downcast_mut::<Function>().unwrap();
     let func_ctx = Rc::new(RefCell::new(FunctionBuilderContext::new(context.clone())));
     let mut op_builder =
         midenc_hir::OpBuilder::new(context).with_listener(SSABuilderListener::new(func_ctx));
-    let mut func_builder = FunctionBuilderExt::new(func, &mut op_builder);
+    drop(func);
+    let mut func_builder = FunctionBuilderExt::new(function_ref, &mut op_builder);
     let entry_block = func_builder.current_block();
     func_builder.seal_block(entry_block); // Declare all predecessors known.
     let args: Vec<ValueRef> = entry_block
