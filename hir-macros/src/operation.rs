@@ -356,7 +356,11 @@ impl OpDefinition {
         // to the Operation::create and OpBuilder function of type:
         // parent_symbol_table: Option<&mut SymbolTableRef>,
         // This is a reference to the symbol table of the parent where this operation will be added.
-        if self.traits.iter().any(|tr| tr.get_ident().unwrap() == "BelongsInSymbolTable") {
+        if self
+            .traits
+            .iter()
+            .any(|tr| tr.get_ident().unwrap() == stringify!(BelongsInSymbolTable))
+        {
             let parent_symbol_table =
                 Ident::new("parent_symbol_table", proc_macro2::Span::call_site());
 
