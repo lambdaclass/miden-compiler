@@ -752,18 +752,16 @@ mod tests {
     fn setup(context: Rc<Context>) -> (ValueRef, ValueRef, ValueRef) {
         let mut builder = OpBuilder::new(Rc::clone(&context));
 
-        let span = SourceSpan::default();
-        let mut sym_builder = builder.create::<SymbolTableHolder, ()>(span);
+        let world_ref = builder.create::<World, ()>(Default::default())()
+            .expect("Error unrelated to test: Failed to build world.");
+        let mut world_builder = WorldBuilder::new(world_ref);
+        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
-        let mut symbol_table_ref = sym_builder()
-            .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
-            .borrow_mut()
-            .as_symbol_table_ref();
         let function = {
             let builder = builder.create::<Function, (_, _, _)>(SourceSpan::default());
             let name = Ident::new("test".into(), SourceSpan::default());
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature, &mut symbol_table_ref).unwrap()
+            builder(name, signature, world).unwrap()
         };
 
         // Define function body
