@@ -369,7 +369,7 @@ impl OpDefinition {
                 and_token: syn::token::And(proc_macro2::Span::call_site()),
                 lifetime: None,
                 mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
-                elem: Box::new(make_type("SymbolTableRef")),
+                elem: Box::new(make_type(stringify!(SymbolTableRef))),
             });
 
             create_params.push(OpCreateParam {
