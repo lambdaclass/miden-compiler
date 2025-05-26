@@ -138,10 +138,6 @@ fn call_handling_test() -> Result<(), Report> {
     let module_body = module.borrow().body().as_region_ref();
     builder.create_block(module_body, None, &[]);
 
-    // let world_ref = builder.create::<World, ()>(Default::default())()
-    //     .expect("Error unrelated to test: Failed to build world.");
-    // let mut world_builder = WorldBuilder::new(world_ref);
-    // let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
     let module_ref = &mut module.borrow_mut().as_symbol_table_ref();
 
     // Define entry
