@@ -372,8 +372,9 @@ mod tests {
     use builtin::{BuiltinOpBuilder, FunctionBuilder};
     use expect_test::expect_file;
     use midenc_hir::{
-        dialects::builtin, pass, AbiParam, BuilderExt, Context, Ident, OpBuilder, PointerType,
-        Report, Signature, SourceSpan, Type,
+        dialects::{builtin, test},
+        pass, AbiParam, BuilderExt, Context, Ident, OpBuilder, PointerType, Report, Signature,
+        SourceSpan, SymbolTable, Type,
     };
 
     use super::*;
@@ -384,11 +385,19 @@ mod tests {
         let mut builder = OpBuilder::new(context.clone());
 
         let span = SourceSpan::default();
+
         let function = {
+            let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+            let mut symbol_table_ref = sym_builder()
+                .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+                .borrow_mut()
+                .as_symbol_table_ref();
+
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature, None).unwrap()
+            builder(name, signature, &mut symbol_table_ref).unwrap()
         };
 
         // Define function body
@@ -449,6 +458,12 @@ mod tests {
 
         let span = SourceSpan::default();
         let function = {
+            let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+            let mut symbol_table_ref = sym_builder()
+                .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+                .borrow_mut()
+                .as_symbol_table_ref();
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new(
@@ -460,7 +475,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature, None).unwrap()
+            builder(name, signature, &mut symbol_table_ref).unwrap()
         };
 
         // Define function body
@@ -572,10 +587,17 @@ mod tests {
 
         let span = SourceSpan::default();
         let function = {
+            let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+            let mut symbol_table_ref = sym_builder()
+                .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+                .borrow_mut()
+                .as_symbol_table_ref();
+
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature, None).unwrap()
+            builder(name, signature, &mut symbol_table_ref).unwrap()
         };
 
         // Define function body
@@ -631,6 +653,13 @@ mod tests {
 
         let span = SourceSpan::default();
         let function = {
+            let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+            let mut symbol_table_ref = sym_builder()
+                .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+                .borrow_mut()
+                .as_symbol_table_ref();
+
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new(
@@ -641,7 +670,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature, None).unwrap()
+            builder(name, signature, &mut symbol_table_ref).unwrap()
         };
 
         // Define function body for the following pseudocode:
@@ -744,6 +773,12 @@ mod tests {
 
         let span = SourceSpan::default();
         let function = {
+            let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+            let mut symbol_table_ref = sym_builder()
+                .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+                .borrow_mut()
+                .as_symbol_table_ref();
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new(
@@ -754,7 +789,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature, None).unwrap()
+            builder(name, signature, &mut symbol_table_ref).unwrap()
         };
 
         // Define function body for the following pseudocode:

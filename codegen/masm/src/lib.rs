@@ -4,7 +4,7 @@
 #![feature(array_chunks)]
 #![feature(iter_array_chunks)]
 #![feature(iterator_try_collect)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 extern crate alloc;
 

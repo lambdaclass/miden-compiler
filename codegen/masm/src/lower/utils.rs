@@ -1,5 +1,7 @@
 use midenc_dialect_scf as scf;
-use midenc_hir::{Op, Operation, Region, Report, Spanned, ValueRef};
+use midenc_hir::{
+    BuilderExt, Op, Operation, Region, Report, SourceSpan, Spanned, SymbolTable, ValueRef,
+};
 use smallvec::SmallVec;
 
 use crate::{emitter::BlockEmitter, masm, Constraint};
@@ -493,7 +495,10 @@ mod tests {
     use midenc_dialect_arith::ArithOpBuilder;
     use midenc_dialect_scf::StructuredControlFlowOpBuilder;
     use midenc_hir::{
-        dialects::builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef},
+        dialects::{
+            builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef},
+            test,
+        },
         formatter::PrettyPrint,
         pass::AnalysisManager,
         version::Version,
@@ -511,13 +516,21 @@ mod tests {
 
         let mut builder = OpBuilder::new(context.clone());
 
+        let span = SourceSpan::default();
+        let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+        let mut symbol_table_ref = sym_builder()
+            .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+            .borrow_mut()
+            .as_symbol_table_ref();
+
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
             Signature::new(
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
-            None,
+            &mut symbol_table_ref,
         )?;
 
         let (a, b) = {
@@ -598,13 +611,21 @@ mod tests {
 
         let mut builder = OpBuilder::new(context.clone());
 
+        let span = SourceSpan::default();
+        let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+        let mut symbol_table_ref = sym_builder()
+            .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+            .borrow_mut()
+            .as_symbol_table_ref();
+
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
             Signature::new(
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
-            None,
+            &mut symbol_table_ref,
         )?;
 
         let (a, b) = {
@@ -828,13 +849,21 @@ mod tests {
     ) -> Result<(FunctionRef, masm::Block), Report> {
         let mut builder = OpBuilder::new(context.clone());
 
+        let span = SourceSpan::default();
+        let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+        let mut symbol_table_ref = sym_builder()
+            .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+            .borrow_mut()
+            .as_symbol_table_ref();
+
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
             Signature::new(
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
-            None,
+            &mut symbol_table_ref,
         )?;
 
         let (a, b) = {

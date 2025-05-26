@@ -5,9 +5,12 @@ use midenc_dialect_cf::ControlFlowOpBuilder;
 use midenc_dialect_hir::HirOpBuilder;
 use midenc_dialect_scf::StructuredControlFlowOpBuilder;
 use midenc_hir::{
-    dialects::builtin::{BuiltinOpBuilder, FunctionBuilder},
-    AbiParam, Builder, Context, Ident, Op, OpBuilder, ProgramPoint, Report, Signature, SourceSpan,
-    SymbolTable, Type, ValueRef,
+    dialects::{
+        builtin::{BuiltinOpBuilder, FunctionBuilder},
+        test,
+    },
+    AbiParam, Builder, BuilderExt, Context, Ident, Op, OpBuilder, ProgramPoint, Report, Signature,
+    SourceSpan, SymbolTable, Type, ValueRef,
 };
 
 use crate::*;
@@ -72,10 +75,18 @@ fn eval_callable_test() -> Result<(), Report> {
 
     let mut builder = OpBuilder::new(test_context.context.clone());
 
+    let span = SourceSpan::default();
+    let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+
+    let mut symbol_table_ref = sym_builder()
+        .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+        .borrow_mut()
+        .as_symbol_table_ref();
+
     let function = builder.create_function(
         Ident::with_empty_span("test".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
-        None,
+        &mut symbol_table_ref,
     )?;
 
     {
@@ -120,7 +131,15 @@ fn call_handling_test() -> Result<(), Report> {
 
     let mut builder = OpBuilder::new(test_context.context.clone());
 
-    let mut module = builder.create_module(Ident::with_empty_span("test".into()), None)?;
+    let span = SourceSpan::default();
+    let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
+    let mut symbol_table_ref = sym_builder()
+        .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
+        .borrow_mut()
+        .as_symbol_table_ref();
+
+    let mut module =
+        builder.create_module(Ident::with_empty_span("test".into()), &mut symbol_table_ref)?;
 
     let module_body = module.borrow().body().as_region_ref();
     builder.create_block(module_body, None, &[]);
@@ -129,7 +148,7 @@ fn call_handling_test() -> Result<(), Report> {
     let entry = builder.create_function(
         Ident::with_empty_span("entrypoint".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
-        None,
+        &mut symbol_table_ref,
     )?;
     module
         .borrow_mut()
@@ -141,7 +160,7 @@ fn call_handling_test() -> Result<(), Report> {
     let callee = builder.create_function(
         Ident::with_empty_span("callee".into()),
         callee_signature.clone(),
-        None,
+        &mut symbol_table_ref,
     )?;
     module
         .borrow_mut()
