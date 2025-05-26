@@ -386,16 +386,19 @@ mod tests {
 
         let span = SourceSpan::default();
 
-        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
-            .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
-        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+        let symbol_table_holder =
+            builder.create::<test::SymbolTableHolder, ()>(Default::default())()
+                .expect("Error unrelated to test: Failed to build symbol table holder.");
+        let mut prim_symbol_table_builder =
+            test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
+        let symbol_table_ref =
+            &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
 
         let function = {
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature, world).unwrap()
+            builder(name, signature, symbol_table_ref).unwrap()
         };
 
         // Define function body
@@ -455,10 +458,13 @@ mod tests {
         let mut builder = OpBuilder::new(context.clone());
         let span = SourceSpan::default();
 
-        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
-            .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
-        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+        let symbol_table_holder =
+            builder.create::<test::SymbolTableHolder, ()>(Default::default())()
+                .expect("Error unrelated to test: Failed to build symbol table holder.");
+        let mut prim_symbol_table_builder =
+            test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
+        let symbol_table_ref =
+            &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
 
         let function = {
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
@@ -472,7 +478,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature, world).unwrap()
+            builder(name, signature, symbol_table_ref).unwrap()
         };
 
         // Define function body
@@ -584,16 +590,19 @@ mod tests {
 
         let span = SourceSpan::default();
 
-        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
-            .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
-        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+        let symbol_table_holder =
+            builder.create::<test::SymbolTableHolder, ()>(Default::default())()
+                .expect("Error unrelated to test: Failed to build symbol table holder.");
+        let mut prim_symbol_table_builder =
+            test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
+        let symbol_table_ref =
+            &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
 
         let function = {
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature, world).unwrap()
+            builder(name, signature, symbol_table_ref).unwrap()
         };
 
         // Define function body
@@ -649,10 +658,13 @@ mod tests {
 
         let span = SourceSpan::default();
 
-        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
-            .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
-        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+        let symbol_table_holder =
+            builder.create::<test::SymbolTableHolder, ()>(Default::default())()
+                .expect("Error unrelated to test: Failed to build symbol table holder.");
+        let mut prim_symbol_table_builder =
+            test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
+        let symbol_table_ref =
+            &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
 
         let function = {
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
@@ -665,7 +677,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature, world).unwrap()
+            builder(name, signature, symbol_table_ref).unwrap()
         };
 
         // Define function body for the following pseudocode:
@@ -768,10 +780,13 @@ mod tests {
 
         let span = SourceSpan::default();
 
-        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
-            .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
-        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+        let symbol_table_holder =
+            builder.create::<test::SymbolTableHolder, ()>(Default::default())()
+                .expect("Error unrelated to test: Failed to build symbol table holder.");
+        let mut prim_symbol_table_builder =
+            test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
+        let symbol_table_ref =
+            &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
 
         let function = {
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
@@ -784,7 +799,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature, world).unwrap()
+            builder(name, signature, symbol_table_ref).unwrap()
         };
 
         // Define function body for the following pseudocode:
