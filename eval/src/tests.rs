@@ -5,12 +5,9 @@ use midenc_dialect_cf::ControlFlowOpBuilder;
 use midenc_dialect_hir::HirOpBuilder;
 use midenc_dialect_scf::StructuredControlFlowOpBuilder;
 use midenc_hir::{
-    dialects::{
-        builtin::{BuiltinOpBuilder, FunctionBuilder, World, WorldBuilder},
-        test,
-    },
-    AbiParam, Builder, BuilderExt, Context, Ident, Op, OpBuilder, ProgramPoint, Report, Signature,
-    SourceSpan, SymbolTable, Type, ValueRef,
+    dialects::builtin::{BuiltinOpBuilder, FunctionBuilder, World, WorldBuilder},
+    AbiParam, Builder, BuilderExt, Context, Ident, Op, OpBuilder, Report, Signature, SourceSpan,
+    SymbolTable, Type, ValueRef,
 };
 
 use crate::*;
@@ -75,17 +72,15 @@ fn eval_callable_test() -> Result<(), Report> {
 
     let mut builder = OpBuilder::new(test_context.context.clone());
 
-    let symbol_table_holder = builder.create::<test::SymbolTableHolder, ()>(Default::default())()
-        .expect("Error unrelated to test: Failed to build symbol table holder.");
-    let mut prim_symbol_table_builder =
-        test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
-    let symbol_table_ref =
-        &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
+    let world_ref = builder.create::<World, ()>(Default::default())()
+        .expect("Error unrelated to test: Failed to build world.");
+    let mut world_builder = WorldBuilder::new(world_ref);
+    let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
     let function = builder.create_function(
         Ident::with_empty_span("test".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
-        symbol_table_ref,
+        world,
     )?;
 
     {
@@ -130,15 +125,12 @@ fn call_handling_test() -> Result<(), Report> {
 
     let mut builder = OpBuilder::new(test_context.context.clone());
 
-    let symbol_table_holder = builder.create::<test::SymbolTableHolder, ()>(Default::default())()
-        .expect("Error unrelated to test: Failed to build symbol table holder.");
-    let mut prim_symbol_table_builder =
-        test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
-    let symbol_table_ref =
-        &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
+    let world_ref = builder.create::<World, ()>(Default::default())()
+        .expect("Error unrelated to test: Failed to build world.");
+    let mut world_builder = WorldBuilder::new(world_ref);
+    let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
-    let mut module =
-        builder.create_module(Ident::with_empty_span("test".into()), symbol_table_ref)?;
+    let mut module = builder.create_module(Ident::with_empty_span("test".into()), world)?;
 
     let module_body = module.borrow().body().as_region_ref();
     builder.create_block(module_body, None, &[]);
