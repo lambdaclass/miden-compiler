@@ -516,10 +516,13 @@ mod tests {
 
         let mut builder = OpBuilder::new(context.clone());
 
-        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
-            .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
-        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+        let symbol_table_holder =
+            builder.create::<test::SymbolTableHolder, ()>(Default::default())()
+                .expect("Error unrelated to test: Failed to build symbol table holder.");
+        let mut prim_symbol_table_builder =
+            test::PrimSymbolTableHolderBuilder::new(symbol_table_holder);
+        let symbol_table_ref =
+            &mut prim_symbol_table_builder.sym_table_holder.borrow_mut().as_symbol_table_ref();
 
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
@@ -527,7 +530,7 @@ mod tests {
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
-            world,
+            symbol_table_ref,
         )?;
 
         let (a, b) = {
