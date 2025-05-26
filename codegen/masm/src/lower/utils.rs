@@ -496,7 +496,7 @@ mod tests {
     use midenc_dialect_scf::StructuredControlFlowOpBuilder;
     use midenc_hir::{
         dialects::{
-            builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef},
+            builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef, WorldBuilder},
             test,
         },
         formatter::PrettyPrint,
@@ -849,13 +849,10 @@ mod tests {
     ) -> Result<(FunctionRef, masm::Block), Report> {
         let mut builder = OpBuilder::new(context.clone());
 
-        let span = SourceSpan::default();
-        let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
-
-        let mut symbol_table_ref = sym_builder()
-            .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
-            .borrow_mut()
-            .as_symbol_table_ref();
+        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
+            .expect("Error unrelated to test: Failed to build world.");
+        let mut world_builder = WorldBuilder::new(world_ref);
+        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
@@ -863,7 +860,7 @@ mod tests {
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
-            &mut symbol_table_ref,
+            world,
         )?;
 
         let (a, b) = {
