@@ -138,28 +138,26 @@ fn call_handling_test() -> Result<(), Report> {
     let module_body = module.borrow().body().as_region_ref();
     builder.create_block(module_body, None, &[]);
 
+    // let world_ref = builder.create::<World, ()>(Default::default())()
+    //     .expect("Error unrelated to test: Failed to build world.");
+    // let mut world_builder = WorldBuilder::new(world_ref);
+    // let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+    let module_ref = &mut module.borrow_mut().as_symbol_table_ref();
+
     // Define entry
     let entry = builder.create_function(
         Ident::with_empty_span("entrypoint".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
-        world,
+        module_ref,
     )?;
-    module
-        .borrow_mut()
-        .symbol_manager_mut()
-        .insert_new(entry, ProgramPoint::Invalid);
 
     // Define callee
     let callee_signature = Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::I1)]);
     let callee = builder.create_function(
         Ident::with_empty_span("callee".into()),
         callee_signature.clone(),
-        world,
+        module_ref,
     )?;
-    module
-        .borrow_mut()
-        .symbol_manager_mut()
-        .insert_new(callee, ProgramPoint::Invalid);
 
     {
         let mut builder = FunctionBuilder::new(entry, &mut builder);
