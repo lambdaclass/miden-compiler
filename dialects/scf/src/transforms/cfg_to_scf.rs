@@ -372,7 +372,7 @@ mod tests {
     use builtin::{BuiltinOpBuilder, FunctionBuilder};
     use expect_test::expect_file;
     use midenc_hir::{
-        dialects::{builtin, test},
+        dialects::{builtin, builtin::WorldBuilder, test},
         pass, AbiParam, BuilderExt, Context, Ident, OpBuilder, PointerType, Report, Signature,
         SourceSpan, SymbolTable, Type,
     };
@@ -455,15 +455,14 @@ mod tests {
 
         let context = Rc::new(Context::default());
         let mut builder = OpBuilder::new(context.clone());
-
         let span = SourceSpan::default();
-        let function = {
-            let mut sym_builder = builder.create::<test::SymbolTableHolder, ()>(span);
 
-            let mut symbol_table_ref = sym_builder()
-                .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
-                .borrow_mut()
-                .as_symbol_table_ref();
+        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
+            .expect("Error unrelated to test: Failed to build world.");
+        let mut world_builder = WorldBuilder::new(world_ref);
+        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+
+        let function = {
             let builder = builder.create::<builtin::Function, (_, _, _)>(span);
             let name = Ident::new("test".into(), span);
             let signature = Signature::new(
@@ -475,7 +474,7 @@ mod tests {
                 ],
                 [AbiParam::new(Type::U32)],
             );
-            builder(name, signature, &mut symbol_table_ref).unwrap()
+            builder(name, signature, world).unwrap()
         };
 
         // Define function body
