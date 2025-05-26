@@ -327,18 +327,17 @@ mod tests {
         let pattern = ConvertShiftLeftBy1ToMultiply::new(Rc::clone(&context));
 
         let mut builder = OpBuilder::new(Rc::clone(&context));
-        let span = SourceSpan::default();
-        let mut sym_builder = builder.create::<SymbolTableHolder, ()>(span);
 
-        let mut symbol_table_ref = sym_builder()
-            .expect("Error unrelated to test itself. Failed to build SymbolTableHolder.")
-            .borrow_mut()
-            .as_symbol_table_ref();
+        let world_ref = builder.create::<World, ()>(Default::default())()
+            .expect("Error unrelated to test: Failed to build world.");
+        let mut world_builder = WorldBuilder::new(world_ref);
+        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+
         let function = {
             let builder = builder.create::<Function, (_, _, _)>(SourceSpan::default());
             let name = Ident::new("test".into(), SourceSpan::default());
             let signature = Signature::new([AbiParam::new(Type::U32)], [AbiParam::new(Type::U32)]);
-            builder(name, signature, &mut symbol_table_ref).unwrap()
+            builder(name, signature, world).unwrap()
         };
 
         // Define function body
@@ -370,7 +369,7 @@ mod tests {
         let output = func.as_operation().to_string();
         let expected = "\
 public builtin.function @test(v0: u32) -> u32 {
-^block0(v0: u32):
+^block1(v0: u32):
     v3 = test.constant 2 : u32;
     v4 = test.mul v0, v3 : u32 #[overflow = wrapping];
     builtin.ret v4;

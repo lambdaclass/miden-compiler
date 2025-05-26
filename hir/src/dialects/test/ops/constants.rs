@@ -53,10 +53,20 @@ impl EffectOpInterface<MemoryEffect> for Constant {
 ///
 #[operation(
     dialect = TestDialect,
-    traits(),
+    traits(
+        SingleRegion,
+        SingleBlock,
+        NoRegionArguments,
+        NoTerminator,
+        // HasOnlyGraphRegion,
+        // GraphRegionNoTerminator,
+        IsolatedFromAbove,
+    ),
     implements(SymbolTable)
 )]
 pub struct SymbolTableHolder {
+    #[region]
+    body: RegionRef,
     #[default]
     symbols: SymbolMap,
     #[default]
