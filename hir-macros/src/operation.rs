@@ -372,8 +372,6 @@ impl OpDefinition {
                 elem: Box::new(make_type("SymbolTableRef")),
             });
 
-            // let parent_symbol_type = parse_quote! { Option< #parent_symbol_type >};
-
             create_params.push(OpCreateParam {
                 param_ty: OpCreateParamType::BuildOnlyParameter(
                     parent_symbol_table.clone(),
