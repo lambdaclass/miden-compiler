@@ -56,7 +56,7 @@ pub struct OpDefinition {
     /// Indicates whether the current operation could belong to a [`SymbolTable`].
     ///
     /// If true, this operation's builder will have an additional parameter of type
-    ///`parent_symbol_table: Option<&mut SymbolTableRef>`. `None` is currently only used in testing.
+    ///`parent_symbol_table: &mut SymbolTableRef`.
     belongs_in_symbol_table: bool,
     /// The symbolic references held by this op
     symbols: Vec<Symbol>,
@@ -149,6 +149,7 @@ impl OpDefinition {
         };
         let mut create_params = vec![];
         let (_, mut fields) = fields.split();
+
         // Compute the absolute ordering of op parameters as follows:
         //
         // * By default, the ordering is implied by the order of field declarations in the struct
@@ -352,9 +353,9 @@ impl OpDefinition {
             }
         }
 
-        // If the operations has the "BelongsInSymbolTable" trait, then add an additional parameter
-        // to the Operation::create and OpBuilder function of type:
-        // parent_symbol_table: Option<&mut SymbolTableRef>,
+        // If the operations has the "BelongsInSymbolTable" trait, then an additional parameter is
+        // added to the Operation::create and OpBuilder function of type:
+        // parent_symbol_table: &mut SymbolTableRef,
         // This is a reference to the symbol table of the parent where this operation will be added.
         if self
             .traits
