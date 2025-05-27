@@ -88,12 +88,7 @@ pub type SymbolTableHolderRef = UnsafeIntrusiveEntityRef<SymbolTableHolder>;
 #[operation(
     dialect = TestDialect,
     traits(
-        SingleRegion,
-        SingleBlock,
-        NoRegionArguments,
         NoTerminator,
-        // HasOnlyGraphRegion,
-        // GraphRegionNoTerminator,
         IsolatedFromAbove,
     ),
     implements(SymbolTable)
