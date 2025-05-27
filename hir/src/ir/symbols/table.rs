@@ -23,7 +23,7 @@ pub trait SymbolTable {
     /// Get a reference to the underlying [Operation]
     fn as_symbol_table_operation(&self) -> &Operation;
 
-    // /// Get a reference to the underlying [Operation]
+    /// Get a reference to the underlying [Operation] as a SymbolTable
     fn as_symbol_table_ref(&self) -> SymbolTableRef;
 
     /// Get a mutable reference to the underlying [Operation]
