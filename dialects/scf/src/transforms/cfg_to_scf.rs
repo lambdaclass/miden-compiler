@@ -372,7 +372,7 @@ mod tests {
     use builtin::{BuiltinOpBuilder, FunctionBuilder};
     use expect_test::expect_file;
     use midenc_hir::{
-        dialects::{builtin, builtin::WorldBuilder, test},
+        dialects::{builtin, test},
         pass, AbiParam, BuilderExt, Context, Ident, OpBuilder, PointerType, Report, Signature,
         SourceSpan, SymbolTable, Type,
     };

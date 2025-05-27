@@ -137,6 +137,8 @@ impl SymbolTable for SymbolTableHolder {
     }
 }
 
+// The builder is not used; however is kept in order to maintain consitency with the other builders
+#[allow(dead_code)]
 pub struct PrimSymbolTableHolderBuilder {
     pub sym_table_holder: SymbolTableHolderRef,
     builder: OpBuilder,

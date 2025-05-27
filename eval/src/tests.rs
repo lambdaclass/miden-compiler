@@ -6,11 +6,11 @@ use midenc_dialect_hir::HirOpBuilder;
 use midenc_dialect_scf::StructuredControlFlowOpBuilder;
 use midenc_hir::{
     dialects::{
-        builtin::{BuiltinOpBuilder, FunctionBuilder, World, WorldBuilder},
+        builtin::{BuiltinOpBuilder, FunctionBuilder},
         test,
     },
-    AbiParam, Builder, BuilderExt, Context, Ident, Op, OpBuilder, ProgramPoint, Report, Signature,
-    SourceSpan, SymbolTable, Type, ValueRef,
+    AbiParam, Builder, BuilderExt, Context, Ident, Op, OpBuilder, Report, Signature, SourceSpan,
+    SymbolTable, Type, ValueRef,
 };
 
 use crate::*;
