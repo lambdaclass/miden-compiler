@@ -1,7 +1,5 @@
 mod interface;
 
-use core::borrow::BorrowMut;
-
 pub use self::interface::{
     ComponentExport, ComponentId, ComponentInterface, ModuleExport, ModuleInterface,
 };
