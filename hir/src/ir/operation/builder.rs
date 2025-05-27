@@ -101,12 +101,6 @@ where
         op.regions.push_back(region);
     }
 
-    pub fn add_to_symbol_table(&mut self) {
-        // pub fn add_to_symbol_table(&mut self, _sym_table: SymbolTableRef) {
-        // let sym_manager = sym_table.borrow_mut().symbol_manager_mut();
-        todo!()
-    }
-
     pub fn with_successor(
         &mut self,
         dest: BlockRef,

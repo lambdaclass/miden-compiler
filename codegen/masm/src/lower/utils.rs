@@ -1,7 +1,5 @@
 use midenc_dialect_scf as scf;
-use midenc_hir::{
-    BuilderExt, Op, Operation, Region, Report, SourceSpan, Spanned, SymbolTable, ValueRef,
-};
+use midenc_hir::{Op, Operation, Region, Report, Spanned, ValueRef};
 use smallvec::SmallVec;
 
 use crate::{emitter::BlockEmitter, masm, Constraint};
@@ -499,7 +497,7 @@ mod tests {
         formatter::PrettyPrint,
         pass::AnalysisManager,
         version::Version,
-        AbiParam, Context, Ident, OpBuilder, Signature, Type,
+        AbiParam, BuilderExt, Context, Ident, OpBuilder, Signature, SymbolTable, Type,
     };
     use midenc_hir_analysis::analyses::LivenessAnalysis;
 

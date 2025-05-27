@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use darling::{
-    util::{Flag, PathList, SpannedValue},
+    util::{Flag, SpannedValue},
     Error, FromDeriveInput, FromField, FromMeta,
 };
 use inflector::Inflector;
@@ -353,9 +353,12 @@ impl OpDefinition {
             }
         }
 
-        // If the operations has the "BelongsInSymbolTable" trait, then an additional parameter is
-        // added to the Operation::create and OpBuilder function of type:
-        // parent_symbol_table: &mut SymbolTableRef,
+        // If the operations has the "BelongsInSymbolTable" trait, then an additional parameter of
+        // type:
+        //
+        //     parent_symbol_table: &mut SymbolTableRef,
+        //
+        // is added to the Operation::create and OpBuilder function of type:
         // This is a reference to the symbol table of the parent where this operation will be added.
         if self
             .traits
@@ -369,7 +372,7 @@ impl OpDefinition {
                 and_token: syn::token::And(proc_macro2::Span::call_site()),
                 lifetime: None,
                 mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
-                elem: Box::new(make_type("SymbolTableRef")),
+                elem: Box::new(make_type(stringify!(SymbolTableRef))),
             });
 
             create_params.push(OpCreateParam {
@@ -703,6 +706,7 @@ impl quote::ToTokens for ModifyOp<'_> {
     }
 }
 
+#[allow(dead_code)]
 struct ReturnOp<'a>(&'a OpDefinition);
 impl quote::ToTokens for ReturnOp<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
@@ -1542,11 +1546,6 @@ pub struct OpResult {
     pub constraint: Constraint,
 }
 
-#[derive(Debug, Clone)]
-pub struct OpSymbolTable {
-    pub name: Ident,
-}
-
 pub type OpResultGroup = EntityGroup<OpResult>;
 
 #[derive(Debug)]
@@ -2090,21 +2089,8 @@ pub struct Operation {
 /// Represents a field in the input struct
 #[derive(Debug, FromField)]
 #[darling(forward_attrs(
-    doc,
-    cfg,
-    allow,
-    attr,
-    operand,
-    operands,
-    region,
-    successor,
-    successors,
-    result,
-    results,
-    default,
-    order,
-    symbol,
-    symbol_table
+    doc, cfg, allow, attr, operand, operands, region, successor, successors, result, results,
+    default, order, symbol
 ))]
 pub struct OperationField {
     /// The name of this field.
