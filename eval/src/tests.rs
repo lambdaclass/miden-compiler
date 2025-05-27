@@ -5,10 +5,7 @@ use midenc_dialect_cf::ControlFlowOpBuilder;
 use midenc_dialect_hir::HirOpBuilder;
 use midenc_dialect_scf::StructuredControlFlowOpBuilder;
 use midenc_hir::{
-    dialects::{
-        builtin::{BuiltinOpBuilder, FunctionBuilder},
-        test,
-    },
+    dialects::builtin::{BuiltinOpBuilder, FunctionBuilder, World, WorldBuilder},
     AbiParam, Builder, BuilderExt, Context, Ident, Op, OpBuilder, Report, Signature, SourceSpan,
     SymbolTable, Type, ValueRef,
 };

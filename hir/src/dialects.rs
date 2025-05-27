@@ -1,3 +1,3 @@
 pub mod builtin;
-// #[cfg(test)]
+#[cfg(test)]
 pub mod test;

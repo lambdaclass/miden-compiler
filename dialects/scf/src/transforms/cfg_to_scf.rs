@@ -372,9 +372,8 @@ mod tests {
     use builtin::{BuiltinOpBuilder, FunctionBuilder};
     use expect_test::expect_file;
     use midenc_hir::{
-        dialects::{builtin, test},
-        pass, AbiParam, BuilderExt, Context, Ident, OpBuilder, PointerType, Report, Signature,
-        SourceSpan, SymbolTable, Type,
+        dialects::builtin, pass, AbiParam, BuilderExt, Context, Ident, OpBuilder, PointerType,
+        Report, Signature, SourceSpan, SymbolTable, Type,
     };
 
     use super::*;
@@ -388,7 +387,7 @@ mod tests {
 
         let world_ref = builder.create::<builtin::World, ()>(Default::default())()
             .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
+        let mut world_builder = builtin::WorldBuilder::new(world_ref);
         let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
         let function = {
@@ -457,7 +456,7 @@ mod tests {
 
         let world_ref = builder.create::<builtin::World, ()>(Default::default())()
             .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
+        let mut world_builder = builtin::WorldBuilder::new(world_ref);
         let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
         let function = {
@@ -586,7 +585,7 @@ mod tests {
 
         let world_ref = builder.create::<builtin::World, ()>(Default::default())()
             .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
+        let mut world_builder = builtin::WorldBuilder::new(world_ref);
         let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
         let function = {
@@ -651,7 +650,7 @@ mod tests {
 
         let world_ref = builder.create::<builtin::World, ()>(Default::default())()
             .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
+        let mut world_builder = builtin::WorldBuilder::new(world_ref);
         let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
         let function = {
@@ -770,7 +769,7 @@ mod tests {
 
         let world_ref = builder.create::<builtin::World, ()>(Default::default())()
             .expect("Error unrelated to test: Failed to build world.");
-        let mut world_builder = WorldBuilder::new(world_ref);
+        let mut world_builder = builtin::WorldBuilder::new(world_ref);
         let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
 
         let function = {

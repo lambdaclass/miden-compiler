@@ -493,10 +493,7 @@ mod tests {
     use midenc_dialect_arith::ArithOpBuilder;
     use midenc_dialect_scf::StructuredControlFlowOpBuilder;
     use midenc_hir::{
-        dialects::{
-            builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef},
-            test,
-        },
+        dialects::builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef, WorldBuilder},
         formatter::PrettyPrint,
         pass::AnalysisManager,
         version::Version,
