@@ -1,12 +1,12 @@
 use std::{collections::BTreeMap, env, path::PathBuf, sync::Arc};
 
-use expect_test::expect_file;
 use miden_core::{
     crypto::hash::RpoDigest,
     utils::{Deserializable, Serializable},
 };
 use miden_mast_package::Package;
 use midenc_debug::Executor;
+use midenc_expect_test::expect_file;
 use midenc_frontend_wasm::WasmTranslationConfig;
 use midenc_hir::{interner::Symbol, FunctionIdent, Ident, SourceSpan};
 
@@ -18,12 +18,11 @@ use crate::{
 #[ignore = "until https://github.com/0xMiden/compiler/issues/439 is fixed"]
 fn account() {
     let artifact_name = "miden_sdk_account_test";
-    let mut test = CompilerTest::rust_source_cargo_lib(
+    let config = WasmTranslationConfig::default();
+    let mut test = CompilerTest::rust_source_cargo_miden(
         "../rust-apps-wasm/rust-sdk/account-test",
-        artifact_name,
-        true,
-        None,
-        None,
+        config,
+        [],
     );
     test.expect_wasm(expect_file![format!(
         "../../expected/rust_sdk_account_test/{artifact_name}.wat"

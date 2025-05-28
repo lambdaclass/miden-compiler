@@ -37,19 +37,25 @@ pub struct CargoTest {
     entrypoint: Option<Cow<'static, str>>,
     build_std: bool,
     build_alloc: bool,
+    release: bool,
 }
 impl CargoTest {
     /// Create a new `cargo` test with the given name, and project directory
-    pub fn new(name: impl Into<Cow<'static, str>>, project_dir: PathBuf) -> Self {
+    pub fn new(
+        name: impl Into<Cow<'static, str>>,
+        project_dir: PathBuf,
+        target: impl Into<Cow<'static, str>>,
+    ) -> Self {
         Self {
             project_dir,
             manifest_path: None,
             target_dir: None,
             name: name.into(),
-            target: "wasm32-wasip1".into(),
+            target: target.into(),
             entrypoint: None,
             build_std: false,
             build_alloc: false,
+            release: true,
         }
     }
 
@@ -101,7 +107,7 @@ impl CargoTest {
         self.project_dir
             .join("target")
             .join(self.target.as_ref())
-            .join("release")
+            .join(if self.release { "release" } else { "debug" })
             .join(self.name.as_ref())
             .with_extension("wasm")
     }
@@ -137,18 +143,20 @@ impl RustcTest {
 
 /// The various types of input artifacts that can be used to drive compiler tests
 pub enum CompilerTestInputType {
-    /// A project that uses `cargo miden build` to produce a Wasm module to use as input
+    /// A project that uses `cargo miden build` to produce a Wasm component to use as input
     CargoMiden(CargoTest),
     /// A project that uses `cargo build` to produce a core Wasm module to use as input
     Cargo(CargoTest),
     /// A project that uses `rustc` to produce a core Wasm module to use as input
     Rustc(RustcTest),
 }
+
 impl From<CargoTest> for CompilerTestInputType {
     fn from(config: CargoTest) -> Self {
         Self::Cargo(config)
     }
 }
+
 impl From<RustcTest> for CompilerTestInputType {
     fn from(config: RustcTest) -> Self {
         Self::Rustc(config)
@@ -290,6 +298,16 @@ impl CompilerTestBuilder {
         self
     }
 
+    /// Specify if the test fixture should be compiled in release mode
+    pub fn with_release(&mut self, release: bool) -> &mut Self {
+        match self.source {
+            CompilerTestInputType::Cargo(ref mut config) => config.release = release,
+            CompilerTestInputType::CargoMiden(ref mut config) => config.release = release,
+            CompilerTestInputType::Rustc(_) => (),
+        }
+        self
+    }
+
     /// Add additional Miden Assembly module sources, to be linked with the program under test.
     pub fn link_with_masm_module(
         &mut self,
@@ -337,9 +355,12 @@ impl CompilerTestBuilder {
 
         // Cargo-based source types share a lot of configuration in common
         match self.source {
-            CompilerTestInputType::CargoMiden(_) => {
+            CompilerTestInputType::CargoMiden(ref config) => {
                 let manifest_path = project_dir.join("Cargo.toml");
-                command.arg("--manifest-path").arg(manifest_path).arg("--release");
+                command.arg("--manifest-path").arg(manifest_path);
+                if config.release {
+                    command.arg("--release");
+                }
             }
 
             CompilerTestInputType::Cargo(ref config) => {
@@ -347,10 +368,12 @@ impl CompilerTestBuilder {
                 command
                     .arg("--manifest-path")
                     .arg(manifest_path)
-                    .arg("--release")
                     .arg("--target")
                     .arg(config.target.as_ref());
 
+                if config.release {
+                    command.arg("--release");
+                }
                 if config.build_std {
                     // compile std as part of crate graph compilation
                     // https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
@@ -413,7 +436,8 @@ impl CompilerTestBuilder {
                     } => (artifact_path, midenc_flags),
                     other => panic!("Expected Wasm output, got {:?}", other),
                 };
-                dbg!(&extra_midenc_flags);
+                // dbg!(&wasm_artifact_path);
+                // dbg!(&extra_midenc_flags);
                 self.midenc_flags.append(&mut extra_midenc_flags);
                 let artifact_name =
                     wasm_artifact_path.file_stem().unwrap().to_str().unwrap().to_string();
@@ -577,7 +601,7 @@ impl CompilerTestBuilder {
             .map(|name| name.to_string_lossy().into_owned())
             .unwrap_or("".to_string());
         let mut builder = CompilerTestBuilder::new(CompilerTestInputType::CargoMiden(
-            CargoTest::new(name, cargo_project_folder.as_ref().to_path_buf()),
+            CargoTest::new(name, cargo_project_folder.as_ref().to_path_buf(), "wasm32-wasip2"),
         ));
         builder.with_wasm_translation_config(config);
         builder.with_midenc_flags(midenc_flags);
@@ -593,8 +617,8 @@ impl CompilerTestBuilder {
         midenc_flags: impl IntoIterator<Item = Cow<'static, str>>,
     ) -> Self {
         let cargo_project_folder = cargo_project_folder.as_ref().to_path_buf();
-        let config =
-            CargoTest::new(artifact_name, cargo_project_folder).with_build_std(is_build_std);
+        let config = CargoTest::new(artifact_name, cargo_project_folder, "wasm32-wasip1")
+            .with_build_std(is_build_std);
         let mut builder = CompilerTestBuilder::new(match entry_func_name {
             Some(entry) => config.with_entrypoint(entry),
             None => config,
@@ -620,7 +644,7 @@ impl CompilerTestBuilder {
                     cargo_project_folder.as_ref().display()
                 )
             });
-        let config = CargoTest::new(artifact_name, project_dir)
+        let config = CargoTest::new(artifact_name, project_dir, "wasm32-wasip1")
             .with_build_alloc(true)
             .with_target_dir(target_dir)
             .with_target("wasm32-unknown-unknown")
@@ -922,34 +946,6 @@ impl CompilerTest {
             .build()
     }
 
-    /// Set the Rust source code to compile a library Cargo project to Wasm module
-    pub fn rust_source_cargo_lib(
-        cargo_project_folder: impl AsRef<Path>,
-        artifact_name: impl Into<Cow<'static, str>>,
-        is_build_std: bool,
-        entry_func_name: Option<Cow<'static, str>>,
-        midenc_flags: impl IntoIterator<Item = Cow<'static, str>>,
-    ) -> Self {
-        CompilerTestBuilder::rust_source_cargo_lib(
-            cargo_project_folder,
-            artifact_name,
-            is_build_std,
-            entry_func_name,
-            midenc_flags,
-        )
-        .build()
-    }
-
-    /// Set the Rust source code to compile using a Cargo project and binary bundle name
-    pub fn rust_source_cargo(
-        cargo_project_folder: &str,
-        artifact_name: impl Into<Cow<'static, str>>,
-        entrypoint: impl Into<Cow<'static, str>>,
-    ) -> Self {
-        CompilerTestBuilder::rust_source_cargo(cargo_project_folder, artifact_name, entrypoint)
-            .build()
-    }
-
     /// Set the Rust source code to compile
     pub fn rust_source_program(rust_source: impl Into<Cow<'static, str>>) -> Self {
         CompilerTestBuilder::rust_source_program(rust_source).build()
@@ -963,16 +959,6 @@ impl CompilerTest {
         CompilerTestBuilder::rust_fn_body(source, midenc_flags).build()
     }
 
-    /// Set the Rust source code to compile and add a binary operation test
-    pub fn rust_fn_body_with_artifact_name(
-        name: impl Into<Cow<'static, str>>,
-        rust_source: &str,
-        midenc_flags: impl IntoIterator<Item = Cow<'static, str>>,
-    ) -> Self {
-        CompilerTestBuilder::rust_fn_body_with_artifact_name(name, rust_source, midenc_flags)
-            .build()
-    }
-
     /// Set the Rust source code to compile with `miden-stdlib-sys` (stdlib + intrinsics)
     pub fn rust_fn_body_with_stdlib_sys(
         name: impl Into<Cow<'static, str>>,
@@ -984,40 +970,8 @@ impl CompilerTest {
             .build()
     }
 
-    /// Set the Rust source code to compile with `miden-sdk` (sdk + intrinsics)
-    pub fn rust_source_with_sdk(
-        name: impl Into<Cow<'static, str>>,
-        source: &str,
-        is_build_std: bool,
-        entrypoint: Option<Cow<'static, str>>,
-        midenc_flags: impl IntoIterator<Item = Cow<'static, str>>,
-    ) -> Self {
-        CompilerTestBuilder::rust_source_with_sdk(
-            name,
-            source,
-            is_build_std,
-            entrypoint,
-            midenc_flags,
-        )
-        .build()
-    }
-
-    /// Like [Self::rust_source_with_sdk], but expects the source code to be a function parameter
-    /// list and body, rather than arbitrary source code.
-    ///
-    /// NOTE: It is valid to append additional sources _after_ the closing brace of the function
-    /// body.
-    pub fn rust_fn_body_with_sdk(
-        name: impl Into<Cow<'static, str>>,
-        source: &str,
-        is_build_std: bool,
-        midenc_flags: impl IntoIterator<Item = Cow<'static, str>>,
-    ) -> Self {
-        CompilerTestBuilder::rust_fn_body_with_sdk(name, source, is_build_std, midenc_flags).build()
-    }
-
     /// Compare the compiled Wasm against the expected output
-    pub fn expect_wasm(&self, expected_wat_file: expect_test::ExpectFile) {
+    pub fn expect_wasm(&self, expected_wat_file: midenc_expect_test::ExpectFile) {
         let wasm_bytes = self.wasm_bytes();
         let wat = demangle(wasm_to_wat(&wasm_bytes));
         expected_wat_file.assert_eq(&wat);
@@ -1042,7 +996,7 @@ impl CompilerTest {
     }
 
     /// Compare the compiled(optimized) IR against the expected output
-    pub fn expect_ir(&mut self, expected_hir_file: expect_test::ExpectFile) {
+    pub fn expect_ir(&mut self, expected_hir_file: midenc_expect_test::ExpectFile) {
         use midenc_hir::Op;
 
         let ir = demangle(self.hir().borrow().as_operation().to_string());
@@ -1050,7 +1004,7 @@ impl CompilerTest {
     }
 
     /// Compare the compiled(unoptimized) IR against the expected output
-    pub fn expect_ir_unoptimized(&mut self, expected_hir_file: expect_test::ExpectFile) {
+    pub fn expect_ir_unoptimized(&mut self, expected_hir_file: midenc_expect_test::ExpectFile) {
         let component = compile_to_unoptimized_hir(self.context.clone())
             .map_err(format_report)
             .expect("failed to translate wasm to hir component")
@@ -1061,7 +1015,7 @@ impl CompilerTest {
     }
 
     /// Compare the compiled MASM against the expected output
-    pub fn expect_masm(&mut self, expected_masm_file: expect_test::ExpectFile) {
+    pub fn expect_masm(&mut self, expected_masm_file: midenc_expect_test::ExpectFile) {
         let program = demangle(self.masm_src().as_str());
         std::println!("{program}");
         expected_masm_file.assert_eq(&program);
@@ -1102,8 +1056,11 @@ impl CompilerTest {
     /// The compiled Wasm component/module
     fn wasm_bytes(&self) -> Vec<u8> {
         match &self.session.inputs[0].file {
-            InputType::Real(file_path) => fs::read(file_path)
-                .unwrap_or_else(|_| panic!("Failed to read Wasm file: {}", file_path.display())),
+            InputType::Real(file_path) => {
+                dbg!(&file_path);
+                fs::read(file_path)
+                    .unwrap_or_else(|_| panic!("Failed to read Wasm file: {}", file_path.display()))
+            }
             InputType::Stdin { name: _, input } => input.clone(),
         }
     }
