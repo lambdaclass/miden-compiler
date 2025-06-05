@@ -7,7 +7,7 @@ pub use self::{component::*, function::*, module::*, world::*};
 use super::ops::*;
 use crate::{
     constants::ConstantData, Builder, BuilderExt, Ident, Immediate, OpBuilder, Report, Signature,
-    SourceSpan, Spanned, Type, UnsafeIntrusiveEntityRef, ValueRef, Visibility,
+    SourceSpan, Spanned, SymbolTableRef, Type, UnsafeIntrusiveEntityRef, ValueRef, Visibility,
 };
 
 pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
@@ -16,18 +16,23 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
         op_builder(name)
     }
 
-    fn create_module(&mut self, name: Ident) -> Result<ModuleRef, Report> {
-        let op_builder = self.builder_mut().create::<Module, (_,)>(name.span());
-        op_builder(name)
+    fn create_module(
+        &mut self,
+        name: Ident,
+        parent_symbol_table: &mut SymbolTableRef,
+    ) -> Result<ModuleRef, Report> {
+        let op_builder = self.builder_mut().create::<Module, (_, _)>(name.span());
+        op_builder(name, parent_symbol_table)
     }
 
     fn create_function(
         &mut self,
         name: Ident,
         signature: Signature,
+        parent_symbol_table: &mut SymbolTableRef,
     ) -> Result<FunctionRef, Report> {
-        let op_builder = self.builder_mut().create::<Function, (_, _)>(name.span());
-        op_builder(name, signature)
+        let op_builder = self.builder_mut().create::<Function, (_, _, _)>(name.span());
+        op_builder(name, signature, parent_symbol_table)
     }
 
     fn create_global_variable(
@@ -35,9 +40,10 @@ pub trait BuiltinOpBuilder<'f, B: ?Sized + Builder> {
         name: Ident,
         visibility: Visibility,
         ty: Type,
+        parent_symbol_table: &mut SymbolTableRef,
     ) -> Result<GlobalVariableRef, Report> {
-        let op_builder = self.builder_mut().create::<GlobalVariable, (_, _, _)>(name.span());
-        op_builder(name, visibility, ty)
+        let op_builder = self.builder_mut().create::<GlobalVariable, (_, _, _, _)>(name.span());
+        op_builder(name, visibility, ty, parent_symbol_table)
     }
 
     fn create_data_segment(

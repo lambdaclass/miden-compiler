@@ -6,11 +6,13 @@ use crate::{
     define_attr_type,
     derive::operation,
     dialects::builtin::BuiltinDialect,
-    traits::{AnyType, IsolatedFromAbove, ReturnLike, SingleRegion, Terminator},
+    traits::{
+        AnyType, BelongsInSymbolTable, IsolatedFromAbove, ReturnLike, SingleRegion, Terminator,
+    },
     AttrPrinter, BlockRef, CallableOpInterface, Context, Ident, Immediate, Op, OpPrinter,
     OpPrintingFlags, Operation, RegionKind, RegionKindInterface, RegionRef, Signature, Symbol,
-    SymbolName, SymbolUse, SymbolUseList, Type, UnsafeIntrusiveEntityRef, Usable, ValueRef,
-    Visibility,
+    SymbolName, SymbolTableRef, SymbolUse, SymbolUseList, Type, UnsafeIntrusiveEntityRef, Usable,
+    ValueRef, Visibility,
 };
 
 trait UsableSymbol = Usable<Use = SymbolUse>;
@@ -75,13 +77,13 @@ impl AttrPrinter for LocalVariable {
 
 #[operation(
     dialect = BuiltinDialect,
-    traits(SingleRegion, IsolatedFromAbove),
+    traits(SingleRegion, IsolatedFromAbove, BelongsInSymbolTable),
     implements(
         UsableSymbol,
         Symbol,
         CallableOpInterface,
         RegionKindInterface,
-        OpPrinter
+        OpPrinter,
     )
 )]
 pub struct Function {

@@ -493,11 +493,11 @@ mod tests {
     use midenc_dialect_scf::StructuredControlFlowOpBuilder;
     use midenc_expect_test::expect_file;
     use midenc_hir::{
-        dialects::builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef},
+        dialects::builtin::{self, BuiltinOpBuilder, FunctionBuilder, FunctionRef, WorldBuilder},
         formatter::PrettyPrint,
         pass::AnalysisManager,
         version::Version,
-        AbiParam, Context, Ident, OpBuilder, Signature, Type,
+        AbiParam, BuilderExt, Context, Ident, OpBuilder, Signature, SymbolTable, Type,
     };
     use midenc_hir_analysis::analyses::LivenessAnalysis;
 
@@ -511,12 +511,18 @@ mod tests {
 
         let mut builder = OpBuilder::new(context.clone());
 
+        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
+            .expect("Error unrelated to test: Failed to build world.");
+        let mut world_builder = WorldBuilder::new(world_ref);
+        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
             Signature::new(
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
+            world,
         )?;
 
         let (a, b) = {
@@ -597,12 +603,18 @@ mod tests {
 
         let mut builder = OpBuilder::new(context.clone());
 
+        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
+            .expect("Error unrelated to test: Failed to build world.");
+        let mut world_builder = WorldBuilder::new(world_ref);
+        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
             Signature::new(
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
+            world,
         )?;
 
         let (a, b) = {
@@ -826,12 +838,18 @@ mod tests {
     ) -> Result<(FunctionRef, masm::Block), Report> {
         let mut builder = OpBuilder::new(context.clone());
 
+        let world_ref = builder.create::<builtin::World, ()>(Default::default())()
+            .expect("Error unrelated to test: Failed to build world.");
+        let mut world_builder = WorldBuilder::new(world_ref);
+        let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+
         let function_ref = builder.create_function(
             Ident::with_empty_span("test".into()),
             Signature::new(
                 [AbiParam::new(Type::U32), AbiParam::new(Type::U32)],
                 [AbiParam::new(Type::U32)],
             ),
+            world,
         )?;
 
         let (a, b) = {

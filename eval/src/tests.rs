@@ -5,8 +5,8 @@ use midenc_dialect_cf::ControlFlowOpBuilder;
 use midenc_dialect_hir::HirOpBuilder;
 use midenc_dialect_scf::StructuredControlFlowOpBuilder;
 use midenc_hir::{
-    dialects::builtin::{BuiltinOpBuilder, FunctionBuilder},
-    AbiParam, Builder, Context, Ident, Op, OpBuilder, ProgramPoint, Report, Signature, SourceSpan,
+    dialects::builtin::{BuiltinOpBuilder, FunctionBuilder, World, WorldBuilder},
+    AbiParam, Builder, BuilderExt, Context, Ident, Op, OpBuilder, Report, Signature, SourceSpan,
     SymbolTable, Type, ValueRef,
 };
 
@@ -72,9 +72,15 @@ fn eval_callable_test() -> Result<(), Report> {
 
     let mut builder = OpBuilder::new(test_context.context.clone());
 
+    let world_ref = builder.create::<World, ()>(Default::default())()
+        .expect("Error unrelated to test: Failed to build world.");
+    let mut world_builder = WorldBuilder::new(world_ref);
+    let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+
     let function = builder.create_function(
         Ident::with_empty_span("test".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
+        world,
     )?;
 
     {
@@ -119,29 +125,32 @@ fn call_handling_test() -> Result<(), Report> {
 
     let mut builder = OpBuilder::new(test_context.context.clone());
 
-    let mut module = builder.create_module(Ident::with_empty_span("test".into()))?;
+    let world_ref = builder.create::<World, ()>(Default::default())()
+        .expect("Error unrelated to test: Failed to build world.");
+    let mut world_builder = WorldBuilder::new(world_ref);
+    let world = &mut world_builder.world.borrow_mut().as_symbol_table_ref();
+
+    let mut module = builder.create_module(Ident::with_empty_span("test".into()), world)?;
 
     let module_body = module.borrow().body().as_region_ref();
     builder.create_block(module_body, None, &[]);
+
+    let module_ref = &mut module.borrow_mut().as_symbol_table_ref();
 
     // Define entry
     let entry = builder.create_function(
         Ident::with_empty_span("entrypoint".into()),
         Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::U32)]),
+        module_ref,
     )?;
-    module
-        .borrow_mut()
-        .symbol_manager_mut()
-        .insert_new(entry, ProgramPoint::Invalid);
 
     // Define callee
     let callee_signature = Signature::new([AbiParam::new(Type::I1)], [AbiParam::new(Type::I1)]);
-    let callee = builder
-        .create_function(Ident::with_empty_span("callee".into()), callee_signature.clone())?;
-    module
-        .borrow_mut()
-        .symbol_manager_mut()
-        .insert_new(callee, ProgramPoint::Invalid);
+    let callee = builder.create_function(
+        Ident::with_empty_span("callee".into()),
+        callee_signature.clone(),
+        module_ref,
+    )?;
 
     {
         let mut builder = FunctionBuilder::new(entry, &mut builder);

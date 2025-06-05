@@ -7,12 +7,12 @@ use crate::{
     derive::operation,
     dialects::builtin::BuiltinDialect,
     traits::{
-        GraphRegionNoTerminator, HasOnlyGraphRegion, IsolatedFromAbove, NoRegionArguments,
-        NoTerminator, SingleBlock, SingleRegion,
+        BelongsInSymbolTable, GraphRegionNoTerminator, HasOnlyGraphRegion, IsolatedFromAbove,
+        NoRegionArguments, NoTerminator, SingleBlock, SingleRegion,
     },
     version::Version,
     Ident, OpPrinter, Operation, RegionKind, RegionKindInterface, Symbol, SymbolManager,
-    SymbolManagerMut, SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolUseList,
+    SymbolManagerMut, SymbolMap, SymbolName, SymbolRef, SymbolTable, SymbolTableRef, SymbolUseList,
     UnsafeIntrusiveEntityRef, Usable, Visibility,
 };
 
@@ -69,6 +69,7 @@ pub type ComponentRef = UnsafeIntrusiveEntityRef<Component>;
         HasOnlyGraphRegion,
         GraphRegionNoTerminator,
         IsolatedFromAbove,
+        BelongsInSymbolTable,
     ),
     implements(RegionKindInterface, SymbolTable, Symbol, OpPrinter)
 )]
@@ -190,6 +191,11 @@ impl SymbolTable for Component {
     #[inline(always)]
     fn as_symbol_table_operation(&self) -> &Operation {
         &self.op
+    }
+
+    #[inline(always)]
+    fn as_symbol_table_ref(&self) -> SymbolTableRef {
+        unsafe { SymbolTableRef::from_raw(self) }
     }
 
     #[inline(always)]

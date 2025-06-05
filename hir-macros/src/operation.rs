@@ -11,6 +11,8 @@ use syn::{parse_quote, spanned::Spanned, Ident, Token};
 pub fn derive_operation(input: syn::DeriveInput) -> darling::Result<proc_macro2::TokenStream> {
     let op = OpDefinition::from_derive_input(&input)?;
 
+    // This method is implicitly implemented using `to_tokens`, and acts as a
+    // convenience method for consumers of the `ToTokens` trait.
     Ok(op.into_token_stream())
 }
 
@@ -51,6 +53,11 @@ pub struct OpDefinition {
     /// Keyed successor groups are handled a bit differently than "normal" successor groups in terms
     /// of the types expected by the op builder for this type.
     successors: Vec<SuccessorGroup>,
+    /// Indicates whether the current operation could belong to a [`SymbolTable`].
+    ///
+    /// If true, this operation's builder will have an additional parameter of type
+    ///`parent_symbol_table: &mut SymbolTableRef`.
+    belongs_in_symbol_table: bool,
     /// The symbolic references held by this op
     symbols: Vec<Symbol>,
     /// The struct definition
@@ -123,6 +130,7 @@ impl OpDefinition {
             operands: vec![],
             results: None,
             successors: vec![],
+            belongs_in_symbol_table: false,
             symbols: vec![],
             op,
             op_builder_impl,
@@ -343,6 +351,35 @@ impl OpDefinition {
                     self.symbols.push(symbol);
                 }
             }
+        }
+
+        // If the operations has the "BelongsInSymbolTable" trait, then an additional parameter is
+        // added to the Operation::create and OpBuilder function of type:
+        // parent_symbol_table: &mut SymbolTableRef,
+        // This is a reference to the symbol table of the parent where this operation will be added.
+        if self
+            .traits
+            .iter()
+            .any(|tr| tr.get_ident().unwrap() == stringify!(BelongsInSymbolTable))
+        {
+            let parent_symbol_table =
+                Ident::new("parent_symbol_table", proc_macro2::Span::call_site());
+
+            let parent_symbol_type = syn::Type::Reference(syn::TypeReference {
+                and_token: syn::token::And(proc_macro2::Span::call_site()),
+                lifetime: None,
+                mutability: Some(syn::token::Mut(proc_macro2::Span::call_site())),
+                elem: Box::new(make_type(stringify!(SymbolTableRef))),
+            });
+
+            create_params.push(OpCreateParam {
+                param_ty: OpCreateParamType::BuildOnlyParameter(
+                    parent_symbol_table.clone(),
+                    parent_symbol_type,
+                ),
+                r#default: false,
+            });
+            self.belongs_in_symbol_table = true;
         }
 
         self.op_builder_impl.set_create_params(&self.op.generics, create_params);
@@ -566,7 +603,7 @@ impl quote::ToTokens for BuildOp<'_> {
         match self.0.results.as_ref() {
             None => {
                 tokens.extend(quote! {
-                    op_builder.build()
+                    let op = op_builder.build();
                 });
             }
             Some(group) => {
@@ -639,10 +676,40 @@ impl quote::ToTokens for BuildOp<'_> {
                         #verify_result_constraints
                     }
 
-                    Ok(op)
+                    // We save the operation in a variable in case it needs to be modified later on
+                    let op = Ok(op);
                 })
             }
         }
+    }
+}
+
+struct ModifyOp<'a>(&'a OpDefinition);
+impl quote::ToTokens for ModifyOp<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        if self.0.belongs_in_symbol_table {
+            tokens.extend(quote! {
+                op.as_ref().map(|op| {
+                    let is_new = parent_symbol_table.borrow_mut().symbol_manager_mut().insert_new(*op, crate::ProgramPoint::Invalid);
+                    assert!(
+                        is_new,
+                        "{} already exists in {}",
+                        op.borrow().name(),
+                        parent_symbol_table.borrow().as_symbol_table_operation().name()
+                    );
+                });
+            });
+        };
+    }
+}
+
+#[allow(dead_code)]
+struct ReturnOp<'a>(&'a OpDefinition);
+impl quote::ToTokens for ReturnOp<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(quote! {
+            op
+        });
     }
 }
 
@@ -670,6 +737,8 @@ impl quote::ToTokens for OpCreateFn<'_> {
         });
         let with_successors = WithSuccessors(self.op);
         let build_op = BuildOp(self.op);
+        let modify_op = ModifyOp(self.op);
+        let return_op = ReturnOp(self.op);
 
         tokens.extend(quote! {
             /// Manually construct a new [#op_ident]
@@ -719,8 +788,14 @@ impl quote::ToTokens for OpCreateFn<'_> {
                 #with_successors
                 #with_results
 
-                // Finalize construction of this op, verifying it
+                /// Construct the op, verifying it
                 #build_op
+
+                /// Apply modifications to the op
+                #modify_op
+
+                /// Return the op
+                #return_op
             }
         });
     }
@@ -2362,6 +2437,8 @@ pub enum OpCreateParamType {
     #[allow(dead_code)]
     OperandGroup(Ident, syn::Type),
     CustomField(Ident, syn::Type),
+    /// Parameters that are only used in the Operation::create and are not stored in the resulting Operation
+    BuildOnlyParameter(Ident, syn::Type),
     Successor(Ident),
     SuccessorGroupNamed(Ident),
     SuccessorGroupKeyed(Ident, syn::Type),
@@ -2375,6 +2452,7 @@ impl OpCreateParam {
             | OpCreateParamType::CustomField(name, _)
             | OpCreateParamType::Operand(Operand { name, .. })
             | OpCreateParamType::OperandGroup(name, _)
+            | OpCreateParamType::BuildOnlyParameter(name, _)
             | OpCreateParamType::SuccessorGroupNamed(name)
             | OpCreateParamType::SuccessorGroupKeyed(name, _)
             | OpCreateParamType::Symbol(Symbol { name, .. }) => vec![name.clone()],
@@ -2400,6 +2478,7 @@ impl OpCreateParam {
                 vec![ty.clone()]
             }
             OpCreateParamType::Operand(_) => vec![make_type("::midenc_hir::ValueRef")],
+            OpCreateParamType::BuildOnlyParameter(_, ty) => vec![ty.clone()],
             OpCreateParamType::OperandGroup(group_name, _)
             | OpCreateParamType::SuccessorGroupNamed(group_name)
             | OpCreateParamType::SuccessorGroupKeyed(group_name, _) => {

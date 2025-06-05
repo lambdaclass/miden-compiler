@@ -6,7 +6,8 @@ use crate::{
         NoTerminator, SingleBlock, SingleRegion,
     },
     Operation, RegionKind, RegionKindInterface, SymbolManager, SymbolManagerMut, SymbolMap,
-    SymbolName, SymbolRef, SymbolTable, SymbolUseList, UnsafeIntrusiveEntityRef, Usable,
+    SymbolName, SymbolRef, SymbolTable, SymbolTableRef, SymbolUseList, UnsafeIntrusiveEntityRef,
+    Usable,
 };
 
 pub type WorldRef = UnsafeIntrusiveEntityRef<World>;
@@ -66,6 +67,11 @@ impl SymbolTable for World {
     #[inline(always)]
     fn as_symbol_table_operation(&self) -> &Operation {
         &self.op
+    }
+
+    #[inline(always)]
+    fn as_symbol_table_ref(&self) -> SymbolTableRef {
+        unsafe { SymbolTableRef::from_raw(self) }
     }
 
     #[inline(always)]
