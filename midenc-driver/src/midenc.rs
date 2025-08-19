@@ -134,8 +134,21 @@ impl Midenc {
         P: Into<PathBuf>,
         A: IntoIterator<Item = OsString>,
     {
+        let args: Vec<OsString> = args.into_iter().collect();
+
         let command = <Self as clap::CommandFactory>::command();
         let command = command.mut_subcommand("compile", midenc_session::flags::register_flags);
+
+        let command_name = command.get_name();
+        // The compiler is being called under a different alias; like it is the
+        // case in [Midenup](https://github.com/0xMiden/midenup).
+        let external = args
+            .iter()
+            .peekable()
+            .peek()
+            .map(std::path::Path::new)
+            .and_then(|command| command.file_name())
+            .is_some_and(|cli_name| cli_name != command_name);
 
         let mut matches = command.try_get_matches_from(args).map_err(ClapDiagnostic::from)?;
         let compile_matches = matches.subcommand_matches("compile").cloned().unwrap_or_default();
@@ -143,7 +156,7 @@ impl Midenc {
             .map_err(format_error::<Self>)
             .map_err(ClapDiagnostic::from)?;
 
-        cli.invoke(cwd.into(), emitter, logger, filter, compile_matches)
+        cli.invoke(cwd.into(), emitter, logger, filter, compile_matches, external)
     }
 
     fn invoke(
@@ -153,6 +166,7 @@ impl Midenc {
         logger: Box<dyn Log>,
         filter: log::LevelFilter,
         matches: clap::ArgMatches,
+        _external: bool,
     ) -> Result<(), Report> {
         match self.command {
             Commands::Compile { input, mut options } => {
