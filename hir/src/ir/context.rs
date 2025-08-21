@@ -91,6 +91,7 @@ impl Context {
 
     pub fn get_registered_dialect(&self, dialect: impl Into<interner::Symbol>) -> Rc<dyn Dialect> {
         let dialect = dialect.into();
+        std::dbg!(&dialect);
         self.registered_dialects.borrow()[&dialect].clone()
     }
 

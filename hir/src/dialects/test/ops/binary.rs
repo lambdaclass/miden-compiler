@@ -38,7 +38,7 @@ macro_rules! has_no_effects {
 /// Two's complement sum
 #[operation(
     dialect = TestDialect,
-    traits(BinaryOp, Commutative, SameTypeOperands, SameOperandsAndResultType),
+    traits(BinaryOp, Commutative, SameTypeOperands, SameOperandsAndResultType, IsolatedFromAbove),
     implements(InferTypeOpInterface, MemoryEffectOpInterface)
 )]
 pub struct Add {

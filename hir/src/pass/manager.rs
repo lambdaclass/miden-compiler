@@ -894,6 +894,7 @@ impl OpToOpPassAdaptor {
             let op = op.borrow();
             (op.name(), op.span(), op.context_rc())
         };
+        std::dbg!("1");
         if !op_name.implements::<dyn IsolatedFromAbove>() {
             return Err(context
                 .diagnostics()
@@ -906,6 +907,7 @@ impl OpToOpPassAdaptor {
                 )
                 .into_report());
         }
+        std::dbg!("2");
         if !pass.can_schedule_on(&op_name) {
             return Err(context
                 .diagnostics()
@@ -923,6 +925,7 @@ impl OpToOpPassAdaptor {
         };
         let callback_op = op;
         let callback_analysis_manager = analysis_manager.clone();
+        std::dbg!("3");
         let pipeline_callback: Box<super::pass::DynamicPipelineExecutor> = Box::new(
             move |pipeline: &mut OpPassManager, root: OperationRef| -> Result<(), Report> {
                 let pi = callback_analysis_manager.pass_instrumentor();
@@ -957,6 +960,7 @@ impl OpToOpPassAdaptor {
             },
         );
 
+        std::dbg!("4");
         let mut execution_state = PassExecutionState::new(
             op,
             context.clone(),
@@ -1098,5 +1102,122 @@ impl Pass for OpToOpPassAdaptor {
         _state: &mut PassExecutionState,
     ) -> Result<(), Report> {
         unreachable!("unexpected call to `Pass::run_on_operation` for OpToOpPassAdaptor")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{boxed::Box, rc::Rc};
+
+    use midenc_hir_type::Type;
+
+    use crate::{
+        dialects::{
+            builtin,
+            test::{self, Add},
+        },
+        pass::{Nesting, Pass, PassExecutionState, PassManager},
+        traits::{AnyUnsignedInteger, BinaryOp, Bool, BuildableTypeConstraint},
+        Builder, BuilderExt, Context, EntityMut, Operation, OperationName, OperationRef, Overflow,
+        Report,
+    };
+
+    /// Pass that breaks invariants
+    struct FaultyPass {}
+    impl FaultyPass {
+        fn new() -> FaultyPass {
+            FaultyPass {}
+        }
+    }
+
+    impl Pass for FaultyPass {
+        type Target = Operation;
+
+        fn name(&self) -> &'static str {
+            "faulty-pass"
+        }
+
+        fn argument(&self) -> &'static str {
+            "faulty-pass"
+        }
+
+        fn description(&self) -> &'static str {
+            "Breaks invariant in Operation"
+        }
+
+        fn can_schedule_on(&self, _name: &OperationName) -> bool {
+            true
+        }
+
+        fn run_on_operation(
+            &mut self,
+            op: EntityMut<'_, Self::Target>,
+            _state: &mut PassExecutionState,
+        ) -> Result<(), Report> {
+            let op = op.into_entity_ref();
+            log::debug!(target: "control-flow-sink", "sinking operations in {op}");
+
+            let is: bool = op.is::<test::Add>();
+
+            // let mut operation: OperationRef = op.as_operation_ref();
+            // let mut operation_mut = operation.borrow_mut();
+            // let mut operand = operation_mut.operands_mut().group_mut(0);
+            // let mut operand = op.as_operation_ref().borrow_mut().operands_mut().group_mut(0);
+            // operand
+            //     .iter_mut()
+            //     .next()
+            //     .unwrap()
+            //     .borrow_mut()
+            //     .as_value_ref()
+            //     .borrow_mut()
+            //     .set_type(Type::F64);
+
+            // drop(op);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn faulty_pass() {
+        use crate::{SourceSpan, Type};
+
+        let context = Rc::new(Context::default());
+        let block = context.create_block_with_params([Type::I32, Type::I32]);
+        let (lhs, rhs) = {
+            let block = block.borrow();
+            let lhs = block.get_argument(0).upcast::<dyn crate::Value>();
+            let rhs = block.get_argument(1).upcast::<dyn crate::Value>();
+            (lhs, rhs)
+        };
+        let mut builder = context.clone().builder();
+        builder.set_insertion_point_to_end(block);
+
+        let op_builder = builder.create::<Add, _>(SourceSpan::default());
+        let op = op_builder(lhs, rhs, Overflow::Wrapping);
+        let mut op = op.unwrap();
+
+        // Construct a pass manager with the default pass pipeline
+        let mut pm = PassManager::on::<Add>(context.clone(), Nesting::Implicit);
+
+        {
+            // let mut component_pm = pm.nest::<builtin::Component>();
+            // Function passes for module-level functions
+            {
+                // let mut module_pm = component_pm.nest::<builtin::Module>();
+                // let mut func_pm = module_pm.nest::<builtin::Function>();
+                // func_pm.add_pass(Box::new(FaultyPass::new()));
+            }
+            // Function passes for component-level functions
+            {
+                // let mut func_pm = component_pm.nest::<builtin::Function>();
+                pm.add_pass(Box::new(FaultyPass::new()));
+            }
+        }
+        // Run pass pipeline
+        pm.run(op.as_operation_ref())
+            .inspect_err(|err| {
+                std::dbg!(err);
+            })
+            .unwrap();
     }
 }
