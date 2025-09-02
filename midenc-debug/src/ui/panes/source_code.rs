@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, ops::Deref, sync::Arc};
 
 use miden_assembly::diagnostics::SourceCode;
 use midenc_session::diagnostics::{LineIndex, Report, SourceFile, SourceId, SourceSpan};
@@ -470,7 +470,7 @@ impl Pane for SourceCodePane {
             .scroll_padding(15);
         let mut list_state = ListState::default().with_selected(Some(selected_line as usize));
 
-        frame.render_stateful_widget(list, area, &mut list_state);
+        let path = frame.render_stateful_widget(list, area, &mut list_state);
         frame.render_widget(
             Block::default()
                 .title("Source Code")
@@ -483,7 +483,7 @@ impl Pane for SourceCodePane {
                 )
                 .title(
                     Line::styled(
-                        resolved.source_file.path().to_string_lossy(),
+                        resolved.source_file.deref().uri().as_str(),
                         Style::default().add_modifier(Modifier::ITALIC),
                     )
                     .right_aligned(),
