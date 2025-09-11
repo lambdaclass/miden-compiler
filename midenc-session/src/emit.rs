@@ -1,5 +1,4 @@
 use alloc::{boxed::Box, fmt, format, string::ToString, sync::Arc, vec};
-use std::thread::sleep;
 
 use miden_core::{prettier::PrettyPrint, utils::Serializable};
 use miden_mast_package::MastArtifact;
@@ -453,8 +452,8 @@ impl Emit for MastArtifact {
     fn write_to<W: Writer>(
         &self,
         mut writer: W,
-        mode: OutputMode,
-        session: &Session,
+        _mode: OutputMode,
+        _session: &Session,
     ) -> anyhow::Result<()> {
         let mut writer = ByteWriterAdapter(&mut writer);
         self.write_into(&mut writer);

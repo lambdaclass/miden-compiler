@@ -470,7 +470,7 @@ impl Pane for SourceCodePane {
             .scroll_padding(15);
         let mut list_state = ListState::default().with_selected(Some(selected_line as usize));
 
-        let path = frame.render_stateful_widget(list, area, &mut list_state);
+        frame.render_stateful_widget(list, area, &mut list_state);
         frame.render_widget(
             Block::default()
                 .title("Source Code")
