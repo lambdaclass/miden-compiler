@@ -15,6 +15,7 @@ use midenc_session::{FileName, Path};
 use super::*;
 
 /// This represents the output of the parser, depending on the type of input that was parsed/loaded.
+#[derive(Debug)]
 pub enum ParseOutput {
     /// We found a WebAssembly binary representing a component or core module.
     ///
