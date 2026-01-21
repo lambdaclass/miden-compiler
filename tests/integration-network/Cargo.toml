@@ -21,6 +21,7 @@ miden-mast-package.workspace = true
 midenc-frontend-wasm.workspace = true
 rand = "0.9"
 tokio.workspace = true
+miden-test-harness.workspace = true
 
 # For accessing the test builder from the main integration tests
 miden-integration-tests = { path = "../integration" }

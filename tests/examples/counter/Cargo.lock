@@ -1886,6 +1886,7 @@ dependencies = [
 name = "miden-test-harness-macros"
 version = "0.6.0"
 dependencies = [
+ "darling",
  "miden-mast-package",
  "miden-testing",
  "quote",

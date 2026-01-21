@@ -1,8 +1,10 @@
+use darling::{ast::NestedMeta, FromMeta};
 use miden_mast_package::Package;
 use miden_testing::MockChainBuilder;
-use proc_macro::TokenStream;
 use quote::quote;
-use syn::{ItemFn, parse_macro_input};
+use syn::{parse_macro_input, ItemFn};
+
+mod attributes;
 
 // Returns the identifier for a specific FnArg
 fn get_binding_and_type(fn_arg: &syn::FnArg) -> Option<(&syn::PatIdent, &syn::PathSegment)> {
@@ -118,6 +120,14 @@ fn load_package(function: &mut syn::ItemFn) {
     }
 }
 
+/// Parse the arguments of a `#[miden-test]` function and check for
+/// `MockChainBuilder`s.
+///
+/// If the function has a single `MockChainBuilder` as argument, then it is
+/// removed from the argument list and gets instantiated by calling the `new()`
+/// method. The name of the variable will match the one used as argument.
+///
+/// This will "consume" all the tokens that are of type `MockChainBuilder`.
 fn load_mock_chain(function: &mut syn::ItemFn) {
     let found_mock_chain =
         process_arguments::<MockChainBuilder>(function, 1).unwrap_or_else(|err| panic!("{err}"));
@@ -142,10 +152,70 @@ fn load_mock_chain(function: &mut syn::ItemFn) {
 /// Used to mark a function as a test that runs under miden's test-harness.
 #[proc_macro_attribute]
 pub fn miden_test(
-    _attr: proc_macro::TokenStream,
+    attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let mut input_fn = parse_macro_input!(item as ItemFn);
+
+    let attr_args = match NestedMeta::parse_meta_list(attr.into()) {
+        Ok(v) => v,
+        Err(e) => {
+            return proc_macro::TokenStream::from(darling::Error::from(e).write_errors());
+        }
+    };
+
+    let mut unrecognized_attrs = Vec::new();
+    let mut recognized_attrs = Vec::new();
+    for attr in attr_args {
+        if let Ok(attr_typed) =
+            attributes::RecognizedAttrsBuilder::from_list([attr.clone()].as_ref())
+        {
+            recognized_attrs.push(attr_typed);
+        } else {
+            unrecognized_attrs.push(attr);
+        }
+    }
+
+    // Build
+    let mut attrs: Vec<_> = recognized_attrs.into_iter().map(|attr| attr.build()).collect();
+    std::dbg!(&attrs);
+
+    // Dependency resolution
+    {}
+
+    // Check for errors in validation.
+    {
+        let errors: Vec<_> = attrs
+            .iter()
+            .map(|attr| attr.validate(&attrs))
+            .filter(|validation| validation.is_err())
+            .collect();
+
+        if !errors.is_empty() {
+            let error_message = errors
+                .iter()
+                .map(|error| error.as_ref().unwrap_err())
+                .fold(String::new(), |acc, err| format!("{acc} \n {}", err));
+            panic!("{error_message}")
+        }
+    }
+
+    // Order attributes so that the emitted code in order to fulfill emit()
+    // dependencies.
+    attrs.sort();
+
+    // Emit code
+    {
+        let emitted: Vec<proc_macro2::TokenStream> =
+            attrs.iter().map(|attr| attr.emit(&attrs)).collect();
+
+        for (i, tokens) in emitted.into_iter().enumerate() {
+            let stmt: syn::Stmt = syn::parse2(tokens).expect("Failed to parse emitted tokens");
+            input_fn.block.as_mut().stmts.insert(i, stmt);
+        }
+    }
+
+    // std::dbg!(recognized_attrs);
 
     load_package(&mut input_fn);
     load_mock_chain(&mut input_fn);
@@ -187,7 +257,7 @@ pub fn miden_test(
 
     };
 
-    TokenStream::from(function)
+    proc_macro::TokenStream::from(function)
 }
 
 /// Used to wrap the `mod tests` declaration.

@@ -119,6 +119,7 @@ syn = { version = "2.0", features = [
     "extra-traits",
     "printing",
 ] }
+darling = { version = "0.20", features = ["diagnostics"] }
 thiserror = { package = "miden-thiserror", version = "1.0" }
 toml = { version = "0.8", features = ["preserve_order"] }
 tokio = { version = "1.39.2", features = ["rt", "time", "macros", "rt-multi-thread"] }
