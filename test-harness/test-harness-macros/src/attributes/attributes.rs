@@ -1,16 +1,18 @@
 use anyhow::{bail, Result};
 use darling::FromMeta;
+use miden_test_harness_derive::Help;
 use proc_macro2::Span;
 use quote::quote;
 use syn::Ident;
 
 // All the recognized attributes builders
-#[derive(Debug, Clone, FromMeta)]
+#[derive(Debug, Clone, FromMeta, Help)]
 pub(crate) enum RecognizedAttrsBuilder {
     Account(AccountAttrBuilder),
-    Chain(MockChainBuilderAttrBuilder),
+    Chain(ChainAttrBuilder),
     Faucet(FaucetAttrBuilder),
     Package(PackageAttrBuilder),
+    Help { attribute: Option<String> },
 }
 
 impl RecognizedAttrsBuilder {
@@ -20,6 +22,33 @@ impl RecognizedAttrsBuilder {
             RecognizedAttrsBuilder::Chain(c) => RecognizedAttrs::Chain(c.build()),
             RecognizedAttrsBuilder::Account(a) => RecognizedAttrs::Account(a.build()),
             RecognizedAttrsBuilder::Package(p) => RecognizedAttrs::Package(p.build()),
+            RecognizedAttrsBuilder::Help { attribute } => {
+                let arg = attribute.as_ref().map(|string| string.as_str());
+                // The RecognizedAttrsBuilder::help() function is generated in
+                // the test-harness-derive crate, inside the derive_help_enum
+                // function.
+                let help_message = RecognizedAttrsBuilder::help(arg);
+                // This is calling "panic", however this is completely intended
+                // behavior. Probably "calm" would be a more suitable name.
+                //
+                // Calling "panic!" inside a proc macro triggers the compiler's
+                // "help: message:" mechanism.
+                // Thus, when a user uses: #[miden_test(help)], the following is
+                // displayed:
+                //
+                //   --> tests/integration-network/src/mockchain/basic_wallet.rs:20:1
+                //    |
+                // 20 | #[miden_test(help)]
+                //    | ^^^^^^^^^^^^^^^^^^^
+                //    |
+                //    = help: message:
+                //      <documentation string>
+                //
+                // And since the <documentation string> is generated from the doc
+                // comments of all the various structs, it should match the
+                // generated cargo doc html page.
+                panic!("{help_message}")
+            }
         }
     }
 }
@@ -89,16 +118,17 @@ fn check_for_chain(full_attrs: &[RecognizedAttrs]) -> bool {
 }
 
 // account attribute
-#[derive(Debug, FromMeta, Clone)]
+#[derive(Debug, FromMeta, Clone, Help)]
 pub(crate) struct AccountAttrBuilder {
+    /// Variable name for this account in generated code. Default: "account".
     #[darling(default)]
     name: Option<String>,
 
-    /// Component used by this account. If empty, defaults to `wallet`.
+    /// Component used by this account. Must match a package name. Default: "wallet".
     #[darling(default)]
     component: Option<String>,
 
-    /// Seed value - becomes [seed_u8; 32] (default: 1)
+    /// Seed for account generation, expanded to [seed; 32]. Default: 1.
     #[darling(default)]
     seed: Option<u8>,
 }
@@ -191,13 +221,14 @@ impl Account {
 }
 
 // Mock Chain
-#[derive(Debug, FromMeta, Clone)]
-pub(crate) struct MockChainBuilderAttrBuilder {
+#[derive(Debug, FromMeta, Clone, Help)]
+pub(crate) struct ChainAttrBuilder {
+    /// Variable name for this chain in generated code. Default: "chain".
     #[darling(default)]
     name: Option<String>,
 }
 
-impl MockChainBuilderAttrBuilder {
+impl ChainAttrBuilder {
     fn build(self) -> MockChainBuilder {
         MockChainBuilder {
             binding: self.name.unwrap_or("chain".to_string()),
@@ -234,17 +265,25 @@ impl MockChainBuilder {
 }
 
 // Faucet
-#[derive(Debug, FromMeta, Clone)]
+#[derive(Debug, FromMeta, Clone, Help)]
 pub(crate) struct FaucetAttrBuilder {
+    /// Variable name for this faucet in generated code. Default: "faucet".
     #[darling(default)]
     name: Option<String>,
 
+    /// Maximum token supply the faucet can issue. Default: 1_000_000_000.
     #[darling(default)]
     max_supply: Option<u64>,
+
+    /// Token symbol identifier (e.g., "MIDEN", "BTC"). Default: "TEST".
     #[darling(default)]
     token_symbol: Option<String>,
+
+    /// Whether the faucet exists on-chain at test start. Default: true.
     #[darling(default)]
     exists: Option<bool>,
+
+    /// Initial token amount issued when faucet is created. Default: 0.
     #[darling(default)]
     issuance: Option<u64>,
 }
@@ -275,7 +314,6 @@ impl Faucet {
     fn validate(&self, full_attrs: &[RecognizedAttrs]) -> Result<()> {
         let has_chain = check_for_chain(full_attrs);
 
-        std::dbg!(has_chain);
         if !has_chain {
             bail!("faucet requires at least the presence of a chain")
         }
@@ -308,12 +346,13 @@ impl Faucet {
 }
 
 // Package
-#[derive(Debug, FromMeta, Clone)]
+#[derive(Debug, FromMeta, Clone, Help)]
 pub(crate) struct PackageAttrBuilder {
+    /// Variable name for this package in generated code. Default: "package".
     #[darling(default)]
     name: Option<String>,
 
-    /// Path to the Rust package to compile
+    /// Relative path to the Rust package directory to compile.
     #[darling(default)]
     path: Option<String>,
 }

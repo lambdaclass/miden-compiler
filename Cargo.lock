@@ -2783,12 +2783,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-test-harness-derive"
+version = "0.6.0"
+dependencies = [
+ "anyhow",
+ "darling",
+ "miden-mast-package",
+ "miden-testing",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "miden-test-harness-macros"
 version = "0.6.0"
 dependencies = [
  "anyhow",
  "darling",
  "miden-mast-package",
+ "miden-test-harness-derive",
  "miden-testing",
  "proc-macro2",
  "quote",

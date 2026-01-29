@@ -18,16 +18,17 @@ use super::helpers::{
 
 /// Tests the basic-wallet contract deployment and p2id note consumption workflow on a mock chain.
 #[miden_test(
-    chain(name = "builder_from_macro"),
+    help(attribute = "account"),
     account(name = "alice_account", component = "wallet"),
-    account(name = "bob_account", component = "wallet", seed = 2),
     faucet(name = "faucet", max_supply = 1_000_000_000),
     package(name = "wallet", path = "../../examples/basic-wallet"),
     package(name = "note_package", path = "../../examples/p2id-note"),
+    account(name = "bob_account", component = "wallet", seed = 2),
     package(
         name = "tx_script_package",
         path = "../../examples/basic-wallet-tx-script"
-    )
+    ),
+    chain(name = "builder_from_macro")
 )]
 pub fn test_basic_wallet_p2id() {
     let faucet_id = faucet.id();

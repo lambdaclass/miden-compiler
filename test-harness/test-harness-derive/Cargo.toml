@@ -1,6 +1,6 @@
 [package]
-name = "miden-test-harness-macros"
-description = "Macros used to aid in test writing."
+name = "miden-test-harness-derive"
+description = "Derive macros used internally."
 publish = false
 version.workspace = true
 rust-version.workspace = true
@@ -18,8 +18,7 @@ proc-macro = true
 [dependencies]
 # Miden dependencies
 miden-mast-package.workspace = true
-miden-testing = "0.13"
-miden-test-harness-derive = { path = "../test-harness-derive" }
+miden-testing = "0.12.4"
 
 # External dependencies
 quote.workspace = true
