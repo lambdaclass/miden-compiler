@@ -1,155 +1,17 @@
-use darling::{ast::NestedMeta, FromMeta};
-use miden_mast_package::Package;
-use miden_testing::MockChainBuilder;
+use darling::{FromMeta, ast::NestedMeta};
 use quote::quote;
-use syn::{parse_macro_input, ItemFn};
+use syn::{ItemFn, parse_macro_input};
 
 mod attributes;
 
-// Returns the identifier for a specific FnArg
-fn get_binding_and_type(fn_arg: &syn::FnArg) -> Option<(&syn::PatIdent, &syn::PathSegment)> {
-    let syn::FnArg::Typed(arg) = fn_arg else {
-        return None;
-    };
-
-    let syn::Type::Path(syn::TypePath { path, .. }) = arg.ty.as_ref() else {
-        return None;
-    };
-
-    // The last token in the segments vector is the actual type, the rest
-    // are just path specifiers.
-    let path_segment = path.segments.last()?;
-
-    let syn::Pat::Ident(binding) = arg.pat.as_ref() else {
-        return None;
-    };
-
-    Some((binding, path_segment))
-}
-
-/// Function that parses and consumes types T from `function`. `max_args`
-/// represents the maximum amount of arguments of type T that `function` may
-/// have.
-fn process_arguments<T>(
-    function: &mut syn::ItemFn,
-    max_args: usize,
-) -> Result<Vec<syn::Ident>, String> {
-    //  "T"'s name as used in the argument list. We skip the whole path
-    let struct_name = std::any::type_name::<T>()
-        .split("::")
-        .last()
-        .unwrap_or_else(|| panic!("Failed to split the {}'s", ::core::any::type_name::<T>()));
-
-    let mut found_vars = Vec::new();
-
-    let fn_args = &mut function.sig.inputs;
-
-    *fn_args = fn_args
-        .iter()
-        .filter(|&fn_arg| {
-            let Some((binding, var_type)) = get_binding_and_type(fn_arg) else {
-                return true;
-            };
-
-            if var_type.ident != struct_name {
-                return true;
-            }
-
-            found_vars.push(binding.ident.clone());
-            false
-        })
-        .cloned()
-        .collect();
-
-    if found_vars.len() > max_args {
-        let identifiers = found_vars
-            .iter()
-            .map(|ident| ident.to_string())
-            .collect::<Vec<String>>()
-            .join(", ");
-
-        let err = format!(
-            "
-Detected that all of the following variables are `{struct_name}`s: {identifiers}
-
-#[miden_test] only supports having {max_args} `{struct_name}` in its argument list."
-        );
-        return Err(err);
-    }
-
-    Ok(found_vars)
-}
-
-/// Parse the arguments of a `#[miden-test]` function and check for `Package`s.
-///
-/// If the function has a single `Package` as argument, then it is removed from
-/// the argument list and the boilerplate code to load the generated `Package`
-/// into a variable will be generated. The name of the variable will match the
-/// one used as argument.
-///
-/// This will "consume" all the tokens that are of type `Package`.
-fn load_package(function: &mut syn::ItemFn) {
-    let found_packages_vars =
-        process_arguments::<Package>(function, 1).unwrap_or_else(|err| panic!("{err}"));
-
-    let Some(package_binding_name) = found_packages_vars.first() else {
-        // If there are no variables with `Package` as its type, then don't load
-        // the `Package`.
-        return;
-    };
-
-    let load_package: Vec<syn::Stmt> = syn::parse_quote! {
-        // Since we rely on the standard libtest function registration mechanism
-        // We currently rely on rustc's standard libtest function registration
-        // mechanism. This is because IDEs, like VSCode, rely on rust-analyzer's
-        // #[test] detection attribute to display the "Run Test" icon.
-        // As far as I've seen, using #[test] on a function generates the
-        // *default* registration code, even when a custom test harness is being
-        // used. This restricts what we can do as "setup code", since we can not
-        // control the order in which tests are executed.
-        let bytes = crate::PACKAGE_BYTES.get_or_init(|| crate::build_package());
-
-        let #package_binding_name =
-            <::miden_protocol::vm::Package as ::miden_protocol::utils::serde::Deserializable>::read_from_bytes(&bytes).unwrap();
-    };
-
-    // We add the required lines to load the generated Package right at the
-    // beginning of the function.
-    for (i, package) in load_package.iter().enumerate() {
-        function.block.as_mut().stmts.insert(i, package.clone());
-    }
-}
-
-/// Parse the arguments of a `#[miden-test]` function and check for
-/// `MockChainBuilder`s.
-///
-/// If the function has a single `MockChainBuilder` as argument, then it is
-/// removed from the argument list and gets instantiated by calling the `new()`
-/// method. The name of the variable will match the one used as argument.
-///
-/// This will "consume" all the tokens that are of type `MockChainBuilder`.
-fn load_mock_chain(function: &mut syn::ItemFn) {
-    let found_mock_chain =
-        process_arguments::<MockChainBuilder>(function, 1).unwrap_or_else(|err| panic!("{err}"));
-
-    let Some(mock_chain_builder_name) = found_mock_chain.first() else {
-        // If there are no variables with `MockChainBuilder` as its type, then don't load
-        // the `MockChainBuilder`.
-        return;
-    };
-
-    let load_mock_chain_builder: Vec<syn::Stmt> = syn::parse_quote! {
-        let mut #mock_chain_builder_name = ::miden_test_harness::reexports::miden_testing::MockChainBuilder::new();
-    };
-
-    // We add the required lines to load the generated MockChainBuilder right at the
-    // beginning of the function.
-    for (i, package) in load_mock_chain_builder.iter().enumerate() {
-        function.block.as_mut().stmts.insert(i, package.clone());
-    }
-}
-
 /// Used to mark a function as a test that runs under miden's test-harness.
+/// To see all the recognized attributes, mark a function with the `help`
+/// attribute and then compile said function:
+/// Like so:
+///
+/// #[miden_test(help())]
+/// fn function() {
+/// }
 #[proc_macro_attribute]
 pub fn miden_test(
     attr: proc_macro::TokenStream,
@@ -178,10 +40,6 @@ pub fn miden_test(
 
     // Build
     let mut attrs: Vec<_> = recognized_attrs.into_iter().map(|attr| attr.build()).collect();
-    std::dbg!(&attrs);
-
-    // Dependency resolution
-    {}
 
     // Check for errors in validation.
     {
@@ -210,15 +68,18 @@ pub fn miden_test(
             attrs.iter().map(|attr| attr.emit(&attrs)).collect();
 
         for (i, tokens) in emitted.into_iter().enumerate() {
-            let stmt: syn::Stmt = syn::parse2(tokens).expect("Failed to parse emitted tokens");
-            input_fn.block.as_mut().stmts.insert(i, stmt);
+            // Since the emit() function can potentially return multiple
+            // statements, we wrap "tokens" in a syn::Block to accommodate
+            // multiple syn::Statements.
+            let wrapped = quote! { { #tokens } };
+            let block: syn::Block =
+                syn::parse2(wrapped).expect("Failed to parse emitted tokens as block");
+
+            for stmt in block.stmts.into_iter().rev() {
+                input_fn.block.as_mut().stmts.insert(i, stmt);
+            }
         }
     }
-
-    // std::dbg!(recognized_attrs);
-
-    load_package(&mut input_fn);
-    load_mock_chain(&mut input_fn);
 
     let fn_ident = input_fn.sig.ident.clone();
     let fn_name = fn_ident.clone().span().source_text().unwrap_or(String::from("test_function"));

@@ -1,5 +1,4 @@
-use quote::{quote, ToTokens};
-use syn;
+use quote::{ToTokens, quote};
 
 /// Derive macro that generates a `help()` function for a struct.
 ///
@@ -9,7 +8,7 @@ use syn;
 /// RecognizedAttrsBuilder enum *variant*.
 ///
 /// So, to sum up:
-/// - Attribute name: RecognizedAttrsBuilder's variant name.
+/// - The attribute name comes from [[RecognizedAttrsBuilder's variant name.
 /// - Attribute fields: The variant's corresponding struct.
 #[proc_macro_derive(Help)]
 pub fn derive_help(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -22,6 +21,8 @@ pub fn derive_help(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     }
 }
 
+/// Generates the [[RecognizedAttrsBuilder]] enum `help(filter)` function which is
+/// called when the help() attribute is used.
 fn derive_help_enum(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let enum_name = input.ident;
 
@@ -86,6 +87,9 @@ However, {enum_name}::{variant_name} was found to have {amount_of_elements} elem
 
     let help_calls = help_elements.iter();
 
+    // `filter` is the name of an attribute. If the user passes in
+    // `#[miden_test(help(attribute = "<attribute name>"))]`, only documentation
+    // for that attribute is displayed.
     let code = quote! {
         impl #enum_name {
             fn help(filter: Option<&str>) -> String {
@@ -93,7 +97,7 @@ However, {enum_name}::{variant_name} was found to have {amount_of_elements} elem
                     .into_iter()
                     .filter_map(|(struct_name, struct_help)| {
                         if let Some(filter) = filter {
-                            if dbg!(filter) == dbg!(struct_name) {
+                            if filter == struct_name {
                                 Some(struct_help)
                             } else {
                                 None
@@ -111,6 +115,13 @@ However, {enum_name}::{variant_name} was found to have {amount_of_elements} elem
     code.into()
 }
 
+/// Generates each [[RecognizedAttrsBuilder]] inner structs `help()` function
+/// which outputs the struct's documentation string. This is generated from its
+/// name and its fields docstrings.
+/// The documentation string follows the following format:
+/// ---------
+/// <struct name>:
+///  - <field>: <docstring>
 fn derive_help_struct(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let struct_name = input.ident;
 
@@ -131,16 +142,15 @@ fn derive_help_struct(input: syn::DeriveInput) -> proc_macro::TokenStream {
         let name = field.ident.as_ref().unwrap().to_string();
         let mut doc = String::new();
         for attr in &field.attrs {
-            if attr.path().is_ident("doc") {
-                if let syn::Meta::NameValue(meta) = &attr.meta {
-                    if let syn::Expr::Lit(syn::ExprLit {
-                        lit: syn::Lit::Str(s),
-                        ..
-                    }) = &meta.value
-                    {
-                        doc.push_str(&s.value().trim());
-                    }
-                }
+            // Doc comments
+            if attr.path().is_ident("doc")
+                && let syn::Meta::NameValue(meta) = &attr.meta
+                && let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(s),
+                    ..
+                }) = &meta.value
+            {
+                doc.push_str(s.value().trim());
             }
         }
         // Each field line

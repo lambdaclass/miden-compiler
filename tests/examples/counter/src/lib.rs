@@ -11,7 +11,7 @@ use miden_test_harness::miden_test_suite;
 
 #[cfg(target_family = "wasm")]
 mod component {
-    use miden::{Felt, StorageMap, StorageMapAccess, Word, component, felt};
+    use miden::{component, felt, Felt, StorageMap, StorageMapAccess, Word};
 
     /// Main contract structure for the counter example.
     #[component]
@@ -39,27 +39,26 @@ mod component {
         }
     }
 }
-
 #[miden_test_suite]
 mod tests {
     use miden::Felt;
     use miden_protocol::account::{
-        AccountBuilder, AccountComponent, auth::AuthSecretKey, component::InitStorageData,
+        auth::AuthSecretKey, component::InitStorageData, AccountBuilder, AccountComponent,
     };
     use miden_standards::account::auth::AuthFalcon512Rpo;
 
-    // This tests loads the generated package in the `foo` variable and is then
+    // This tests loads the generated package in the `_bar` variable and is then
     // printed.
-    #[miden_test]
+    #[miden_test(package(local = true, name = "_bar"))]
     #[should_panic]
-    fn bar(_bar: Package) {
+    fn bar() {
         // To see what the generated Package looks like, uncomment this line:
-        std::dbg!(&_bar);
+        // std::dbg!(&_bar);
         assert_eq!(1, 1 + 1);
     }
 
-    // This test will fail at compile time because it is only legal to have a
-    // single package as an argument. The following error message is displayed:
+    // This test will fail at compile time because it is not permitted to have a
+    // more than one local package. The following error message is displayed:
     //
     // error: custom attribute panicked
     //   --> src/lib.rs:55:5
@@ -71,9 +70,12 @@ mod tests {
     //            Detected that all of the following variables are `Package`s: foo, bar
     //
     //            #[miden_test] only supports having a single `Package` in its argument list.
-    // Uncomment to see the failure!
-    // #[miden_test]
-    // fn bing(foo: Package, bar: Package) {
+    // Uncomment to see the failure.
+    // #[miden_test(
+    //     package(local = true, name = "foo"),
+    //     package(local = true, name = "bar")
+    // )]
+    // fn bing() {
     //     std::dbg!(&foo);
     //     assert_eq!(1, 1 + 1);
     // }
@@ -86,18 +88,18 @@ mod tests {
         assert_eq!(2, 1 + 1)
     }
 
-    #[miden_test]
-    fn foo(chain: MockChainBuilder) {
+    #[miden_test(chain)]
+    fn foo() {
         assert_eq!(2, 1 + 1)
     }
 
     // This function instantiates a `MockChain` with an `Account` with the
     // `AccountComponent` generated from the rust code from this file..
-    #[miden_test]
-    fn load_generated_account(account: Package, mock: MockChainBuilder) {
+    #[miden_test(package(local = true, name = "pkg"), chain(name = "mock"))]
+    fn load_generated_account() {
         let init_storage_data = InitStorageData::default();
         let account_component =
-            AccountComponent::from_package(&account, &init_storage_data).unwrap();
+            AccountComponent::from_package_with_init_data(&pkg, &init_storage_data).unwrap();
 
         let (_key_pair, auth_component) = {
             let key_pair = AuthSecretKey::new_falcon512_rpo();

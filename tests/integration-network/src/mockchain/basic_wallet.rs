@@ -4,7 +4,7 @@ use miden_client::{
     asset::FungibleAsset,
     crypto::RpoRandomCoin,
     note::NoteAssets,
-    testing::{AccountState, Auth, MockChain},
+    testing::{AccountState, Auth},
     transaction::OutputNote,
 };
 use miden_core::Felt;
@@ -18,17 +18,21 @@ use super::helpers::{
 
 /// Tests the basic-wallet contract deployment and p2id note consumption workflow on a mock chain.
 #[miden_test(
-    help(attribute = "account"),
-    account(name = "alice_account", component = "wallet"),
+    // Uncomment this line so see the documentation. Compiling the projec will
+    // display the available documentationa.
+    // help(),
+    // You can also see the documentation for a specific attribute.
+    // help(attribute = "package"),
+    chain(name = "builder_from_macro"),
     faucet(name = "faucet", max_supply = 1_000_000_000),
     package(name = "wallet", path = "../../examples/basic-wallet"),
     package(name = "note_package", path = "../../examples/p2id-note"),
-    account(name = "bob_account", component = "wallet", seed = 2),
     package(
         name = "tx_script_package",
         path = "../../examples/basic-wallet-tx-script"
     ),
-    chain(name = "builder_from_macro")
+    account(name = "alice_account", component = "wallet", seed = 1),
+    account(name = "bob_account", component = "wallet", seed = 2)
 )]
 pub fn test_basic_wallet_p2id() {
     let faucet_id = faucet.id();
@@ -110,36 +114,23 @@ pub fn test_basic_wallet_p2id() {
 /// - Create fungible faucet and mint tokens to Alice
 /// - Alice creates a p2ide note for Bob (with timelock=0, reclaim=0)
 /// - Bob consumes the p2ide note and receives the assets
-#[test]
+#[miden_test(
+    chain(name = "builder"),
+    faucet(name = "faucet_account", max_supply = 1_000_000_000),
+    package(name = "wallet_package", path = "../../examples/basic-wallet"),
+    package(name = "p2id_note_package", path = "../../examples/p2id-note"),
+    package(name = "p2ide_note_package", path = "../../examples/p2ide-note"),
+    account(
+        name = "alice_account",
+        component = "wallet_package",
+        seed = 3,
+        with_basic_wallet = true
+    ),
+    account(name = "bob_account", component = "wallet_package", seed = 4)
+)]
 pub fn test_basic_wallet_p2ide() {
-    // Compile the contracts first (before creating any runtime)
-    let wallet_package = compile_rust_package("../../examples/basic-wallet", true);
-    let p2id_note_package = compile_rust_package("../../examples/p2id-note", true);
-    let p2ide_note_package = compile_rust_package("../../examples/p2ide-note", true);
-
-    let mut builder = MockChain::builder();
-    let max_supply = 1_000_000_000u64;
-    let faucet_account = builder
-        .add_existing_basic_faucet(Auth::BasicAuth, "TEST", max_supply, None)
-        .unwrap();
     let faucet_id = faucet_account.id();
-
-    let alice_account = builder
-        .add_account_from_builder(
-            Auth::BasicAuth,
-            build_existing_basic_wallet_account_builder(wallet_package.clone(), true, [3_u8; 32]),
-            AccountState::Exists,
-        )
-        .unwrap();
     let alice_id = alice_account.id();
-
-    let bob_account = builder
-        .add_account_from_builder(
-            Auth::BasicAuth,
-            build_existing_basic_wallet_account_builder(wallet_package, false, [4_u8; 32]),
-            AccountState::Exists,
-        )
-        .unwrap();
     let bob_id = bob_account.id();
 
     let mut chain = builder.build().unwrap();
@@ -232,36 +223,23 @@ pub fn test_basic_wallet_p2ide() {
 /// - Alice creates a p2ide note intended for Bob (with reclaim enabled)
 /// - Alice reclaims the note herself (exercises the reclaim branch)
 /// - Verify Alice has her original balance back
-#[test]
+#[miden_test(
+    chain(name = "builder"),
+    faucet(name = "faucet_account", max_supply = 1_000_000_000),
+    package(name = "wallet_package", path = "../../examples/basic-wallet"),
+    package(name = "p2id_note_package", path = "../../examples/p2id-note"),
+    package(name = "p2ide_note_package", path = "../../examples/p2ide-note"),
+    account(
+        name = "alice_account",
+        component = "wallet_package",
+        seed = 5,
+        with_basic_wallet = true
+    ),
+    account(name = "bob_account", component = "wallet_package", seed = 6)
+)]
 pub fn test_basic_wallet_p2ide_reclaim() {
-    // Compile the contracts first (before creating any runtime)
-    let wallet_package = compile_rust_package("../../examples/basic-wallet", true);
-    let p2id_note_package = compile_rust_package("../../examples/p2id-note", true);
-    let p2ide_note_package = compile_rust_package("../../examples/p2ide-note", true);
-
-    let mut builder = MockChain::builder();
-    let max_supply = 1_000_000_000u64;
-    let faucet_account = builder
-        .add_existing_basic_faucet(Auth::BasicAuth, "TEST", max_supply, None)
-        .unwrap();
     let faucet_id = faucet_account.id();
-
-    let alice_account = builder
-        .add_account_from_builder(
-            Auth::BasicAuth,
-            build_existing_basic_wallet_account_builder(wallet_package.clone(), true, [5_u8; 32]),
-            AccountState::Exists,
-        )
-        .unwrap();
     let alice_id = alice_account.id();
-
-    let bob_account = builder
-        .add_account_from_builder(
-            Auth::BasicAuth,
-            build_existing_basic_wallet_account_builder(wallet_package, false, [6_u8; 32]),
-            AccountState::Exists,
-        )
-        .unwrap();
     let bob_id = bob_account.id();
 
     let mut chain = builder.build().unwrap();

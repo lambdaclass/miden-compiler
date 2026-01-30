@@ -1,11 +1,17 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use darling::FromMeta;
 use miden_test_harness_derive::Help;
 use proc_macro2::Span;
 use quote::quote;
 use syn::Ident;
 
-// All the recognized attributes builders
+/// All the recognized attributes for the `miden_test` macro.
+/// Each variant* contains a struct which holds all the configurable fields.
+/// It is *required* that the inner struct has the enum variant's name as its
+/// prefix, followed by the "AttrsBuilder" suffix. For example:
+/// - Account(AccountAttrBuilder) is valid
+/// - AccountComponent(AccountAttrBuilder) is *NOT* valid
+/// - Account(InnerAccountBuilder) is *NOT* valid
 #[derive(Debug, Clone, FromMeta, Help)]
 pub(crate) enum RecognizedAttrsBuilder {
     Account(AccountAttrBuilder),
@@ -23,14 +29,11 @@ impl RecognizedAttrsBuilder {
             RecognizedAttrsBuilder::Account(a) => RecognizedAttrs::Account(a.build()),
             RecognizedAttrsBuilder::Package(p) => RecognizedAttrs::Package(p.build()),
             RecognizedAttrsBuilder::Help { attribute } => {
-                let arg = attribute.as_ref().map(|string| string.as_str());
+                let arg = attribute.as_deref();
                 // The RecognizedAttrsBuilder::help() function is generated in
                 // the test-harness-derive crate, inside the derive_help_enum
                 // function.
                 let help_message = RecognizedAttrsBuilder::help(arg);
-                // This is calling "panic", however this is completely intended
-                // behavior. Probably "calm" would be a more suitable name.
-                //
                 // Calling "panic!" inside a proc macro triggers the compiler's
                 // "help: message:" mechanism.
                 // Thus, when a user uses: #[miden_test(help)], the following is
@@ -53,6 +56,9 @@ impl RecognizedAttrsBuilder {
     }
 }
 
+/// These structs are the "built" equivalents of the `PackageAttrBuilder` variants.
+/// There should be a 1 to 1 correspondence with the exception of
+/// [[RecognizedAttrsBuilder::Help]].
 #[derive(Debug)]
 pub(crate) enum RecognizedAttrs {
     Account(Account),
@@ -61,7 +67,11 @@ pub(crate) enum RecognizedAttrs {
     Package(Package),
 }
 impl RecognizedAttrs {
-    /// Returns the sort order for this variant.
+    /// Returns the sort order for this variant. Each struct emits some code in
+    /// its emit() function. Some structs depend on other structs having emitted
+    /// their code before them.
+    /// The clearest example is the `Account` variants which require the
+    /// `Mockchain`, in order for the isntantiated account to be added into it.
     fn sort_order(&self) -> u8 {
         match self {
             RecognizedAttrs::Package(_) => 0,
@@ -112,7 +122,7 @@ impl RecognizedAttrs {
     }
 }
 
-// misc functions
+// Misc utility functions
 fn check_for_chain(full_attrs: &[RecognizedAttrs]) -> bool {
     full_attrs.iter().any(|attr| matches!(attr, RecognizedAttrs::Chain(_)))
 }
@@ -131,21 +141,19 @@ pub(crate) struct AccountAttrBuilder {
     /// Seed for account generation, expanded to [seed; 32]. Default: 1.
     #[darling(default)]
     seed: Option<u8>,
+
+    /// Whether to include the basic wallet component. Default: false.
+    #[darling(default)]
+    with_basic_wallet: Option<bool>,
 }
 
 impl AccountAttrBuilder {
-    fn resolve_dependencies(
-        &self,
-        full_attrs: &[RecognizedAttrsBuilder],
-    ) -> Option<RecognizedAttrsBuilder> {
-        todo!()
-    }
-
     fn build(self) -> Account {
         Account {
             binding: self.name.unwrap_or("account".to_string()),
             component: self.component.unwrap_or("wallet".to_string()),
             seed: self.seed.unwrap_or(1),
+            with_basic_wallet: self.with_basic_wallet.unwrap_or(false),
         }
     }
 }
@@ -155,11 +163,12 @@ pub(crate) struct Account {
     binding: String,
     component: String,
     seed: u8,
+    with_basic_wallet: bool,
 }
 
 impl Account {
     fn validate(&self, full_attrs: &[RecognizedAttrs]) -> Result<()> {
-        // Check for an existing chaing
+        // Check for an existing chain.
         let has_chain = check_for_chain(full_attrs);
         if !has_chain {
             bail!("account requires at least the presence of a chain")
@@ -197,6 +206,7 @@ impl Account {
         let binding = Ident::new(&self.binding, Span::call_site());
         let pkg_binding = Ident::new(&self.component, Span::call_site());
         let seed = self.seed;
+        let with_basic_wallet = self.with_basic_wallet;
 
         // Find chain binding
         let builder_binding_name = full_attrs
@@ -212,7 +222,7 @@ impl Account {
             let #binding = #builder_binding
                 .add_account_from_builder(
                     Auth::BasicAuth,
-                    build_existing_basic_wallet_account_builder(#pkg_binding.clone(), false, [#seed; 32]),
+                    build_existing_basic_wallet_account_builder(#pkg_binding.clone(), #with_basic_wallet, [#seed; 32]),
                     AccountState::Exists,
                 )
                 .unwrap();
@@ -259,7 +269,7 @@ impl MockChainBuilder {
         let binding = Ident::new(&self.binding, Span::call_site());
 
         quote! {
-            let mut #binding = MockChain::builder();
+            let mut #binding = ::miden_test_harness::reexports::miden_testing::MockChainBuilder::new();
         }
     }
 }
@@ -301,6 +311,7 @@ impl FaucetAttrBuilder {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct Faucet {
     binding: String,
 
@@ -335,7 +346,7 @@ impl Faucet {
             })
             .expect("Couldn't find `chain`");
 
-        let builder_binding = Ident::new(&builder_binding_name, Span::call_site().into());
+        let builder_binding = Ident::new(builder_binding_name, Span::call_site());
 
         quote! {
             let #binding = #builder_binding
@@ -353,15 +364,35 @@ pub(crate) struct PackageAttrBuilder {
     name: Option<String>,
 
     /// Relative path to the Rust package directory to compile.
+    /// Mutually exclusive with `local`.
     #[darling(default)]
     path: Option<String>,
+
+    /// Load the current crate's package (built via `cargo miden build`).
+    /// Mainly intended for unit tests in rust code targetted by midenc.
+    /// Mutually exclusive with `path`. Default: false.
+    #[darling(default)]
+    local: Option<bool>,
 }
 
 impl PackageAttrBuilder {
     fn build(self) -> Package {
+        let local = self.local.unwrap_or(false);
+        let path = self.path;
+
+        // Validate mutual exclusivity
+        if local && path.is_some() {
+            panic!("package: `local` and `path` are mutually exclusive. Use one or the other.");
+        }
+
+        if !local && path.is_none() {
+            panic!("package: either `path` or `local = true` must be specified.");
+        }
+
         Package {
             binding: self.name.unwrap_or("package".to_string()),
-            path: self.path.unwrap_or("".to_string()),
+            path: path.unwrap_or_default(),
+            local,
         }
     }
 }
@@ -370,6 +401,7 @@ impl PackageAttrBuilder {
 pub(crate) struct Package {
     binding: String,
     path: String,
+    local: bool,
 }
 
 impl Package {
@@ -396,15 +428,62 @@ impl Package {
             }
         }
 
+        // Only one local package is allowed at a time.
+        {
+            let local_package_count = full_attrs
+                .iter()
+                .filter_map(|attr| match attr {
+                    RecognizedAttrs::Package(p) => Some(p),
+                    _ => None,
+                })
+                .filter(|package| package.local)
+                .map(|package| package.binding.clone());
+
+            let binding_count = local_package_count.clone().count();
+            if binding_count > 1 {
+                let bindings = local_package_count.fold(String::new(), |acc, binding| {
+                    if acc.is_empty() {
+                        binding
+                    } else {
+                        acc + ", " + binding.as_str()
+                    }
+                });
+
+                bail!(
+                    "Only one package with `local = true` can exist, yet {} were found: {}",
+                    binding_count,
+                    bindings
+                );
+            }
+        }
+
         Ok(())
     }
 
     fn emit(&self, _full_attrs: &[RecognizedAttrs]) -> proc_macro2::TokenStream {
         let binding = Ident::new(&self.binding, Span::call_site());
-        let path = &self.path;
 
-        quote! {
-            let #binding = compile_rust_package(#path, true);
+        if self.local {
+            quote! {
+                // We currently rely on rustc's standard libtest function
+                // registration mechanism. This is because IDEs, like VSCode,
+                // rely on rust-analyzer's #[test] detection attribute to
+                // display the "Run Test" icon.  As far as I've seen, using
+                // #[test] on a function generates the *default* registration
+                // code, even when a custom test harness is being used. This
+                // restricts what we can do as "setup code", since we can not
+                // control the order in which tests are executed. For more
+                // context see:
+                // https://github.com/0xMiden/compiler/pull/817#issuecomment-3762180898
+                let bytes = crate::PACKAGE_BYTES.get_or_init(|| crate::build_package());
+
+                let #binding = <::miden_objects::vm::Package as ::miden_objects::utils::Deserializable>::read_from_bytes(&bytes).unwrap();
+            }
+        } else {
+            let path = &self.path;
+            quote! {
+                let #binding = compile_rust_package(#path, true);
+            }
         }
     }
 }

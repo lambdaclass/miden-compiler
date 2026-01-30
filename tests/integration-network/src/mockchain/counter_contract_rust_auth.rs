@@ -5,10 +5,10 @@
 //! contract account that uses the Rust-compiled auth component.
 
 use miden_client::{
-    auth::BasicAuthenticator, crypto::RpoRandomCoin, note::NoteTag, testing::MockChain,
-    transaction::OutputNote,
+    auth::BasicAuthenticator, crypto::RpoRandomCoin, note::NoteTag, transaction::OutputNote,
 };
 use miden_protocol::account::StorageSlotName;
+use miden_test_harness::miden_test;
 
 use super::helpers::{
     NoteCreationConfig, assert_counter_storage, block_on, build_counter_account_with_rust_rpo_auth,
@@ -18,18 +18,20 @@ use super::helpers::{
 /// Verify that another client (without the RPO-Falcon512 key) cannot create notes for
 /// the counter account which uses the Rust-compiled RPO-Falcon512 authentication component.
 #[ignore = "until https://github.com/0xMiden/compiler/issues/904 is fixed"]
-#[test]
+#[miden_test(
+    chain(name = "builder"),
+    package(name = "contract_package", path = "../../examples/counter-contract"),
+    package(name = "note_package", path = "../../examples/counter-note"),
+    package(
+        name = "rpo_auth_package",
+        path = "../../examples/auth-component-rpo-falcon512"
+    )
+)]
 pub fn test_counter_contract_rust_auth_blocks_unauthorized_note_creation() {
-    let contract_package = compile_rust_package("../../examples/counter-contract", true);
-    let note_package = compile_rust_package("../../examples/counter-note", true);
-    let rpo_auth_package =
-        compile_rust_package("../../examples/auth-component-rpo-falcon512", true);
-
     let (counter_account, secret_key) =
         build_counter_account_with_rust_rpo_auth(contract_package, rpo_auth_package, [0_u8; 32]);
     let counter_account_id = counter_account.id();
 
-    let mut builder = MockChain::builder();
     builder
         .add_account(counter_account)
         .expect("failed to add counter account to mock chain builder");
