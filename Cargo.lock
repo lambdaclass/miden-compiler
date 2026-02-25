@@ -2323,8 +2323,6 @@ dependencies = [
 [[package]]
 name = "miden-block-prover"
 version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec766587e838664ded55fa926d0611244cac2fe23b7cec202d8db0a85d9e536e"
 dependencies = [
  "miden-lib",
  "miden-objects",
@@ -2567,8 +2565,6 @@ dependencies = [
 [[package]]
 name = "miden-lib"
 version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "598582071e5b0ec835d06288857d4ddc0090a98bd4c17e408fa56b2c43f45d73"
 dependencies = [
  "Inflector",
  "fs-err",
@@ -2664,8 +2660,6 @@ dependencies = [
 [[package]]
 name = "miden-objects"
 version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ace4018bb2d6cdbcff4d86d8af5ade8efca9f0479f7e5775c7f09cfab5f91ebe"
 dependencies = [
  "bech32",
  "getrandom 0.3.4",
@@ -2795,8 +2789,6 @@ dependencies = [
 [[package]]
 name = "miden-testing"
 version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cda0d572d7415682ed168f616becf006825aa04b89692f9907cbb3e3586bf46a"
 dependencies = [
  "anyhow",
  "itertools 0.14.0",
@@ -2835,8 +2827,6 @@ dependencies = [
 [[package]]
 name = "miden-tx"
 version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d959064f99ce09fc38e9b6b4dc24c3fa80a63072bf5840a1074ca4ed5e9c911"
 dependencies = [
  "miden-lib",
  "miden-objects",
@@ -2851,8 +2841,6 @@ dependencies = [
 [[package]]
 name = "miden-tx-batch-prover"
 version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5029810b106654a1ec5d7d7123945db91b96bc4f4187715d0c2cfe0b0a53af4"
 dependencies = [
  "miden-objects",
  "miden-tx",
